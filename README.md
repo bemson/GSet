@@ -12,11 +12,10 @@ Proxy is available as an external JavaScript library file. Include it in your we
 
 ### Using
 
-See the wiki at, [[http://github.com/bemson/Proxy/wiki/]]
+See the wiki at, http://github.com/bemson/Proxy/wiki/
 
 ### Licensing
 
-Proxy is available under the [[MIT-License|http://en.wikipedia.org/wiki/MIT_License#License_terms
-]].
+Proxy is available under the MIT-License - http://en.wikipedia.org/wiki/MIT_License#License_terms
 
 Copyright 2010, Bemi Faison
