@@ -89,7 +89,7 @@ function Proxy(source,scheme) {
 						// if the validator is a function or string...
 						if (kind[1] === 'f' || kind[1] === 's') {
 							// define validator as type or function, based on kind
-							cfg[kind[1] === kinds.f ? 'validator' : 'type'] = pm[1];
+							cfg[kind[1] === 'f' ? 'validator' : 'type'] = pm[1];
 						} else { // otherwise, when validator is not recognized...
 							// flag that all values are valid
 							cfg.validAny = 1;
