@@ -1,10 +1,9 @@
 /**
-* Proxy v1.0
+* Proxy v1.0.1
 * http://github.com/bemson/Proxy/
 *
 * Copyright 2010, Bemi Faison
-* Licensed under the MIT License
-* http://en.wikipedia.org/wiki/MIT_License#License_terms
+* Licensed under terms of the MIT License
 **/
 
 /**
@@ -16,13 +15,16 @@
 function Proxy(source,scheme) {
 	// init vars
 	var pxy = this, // alias self
-		cfgs = {}, // information about configurable options
-		Ary = Array, // shorthand Array constructor
-		kinds = { // collection of types tested by this instance
-			s: 'string', // live
-			f: 'function',
-			o: 'object',
-			a: 'array'
+		cfgs = {}, // information about configurable properties
+		typeMap = { // collection of allowed types
+			'string': 's',
+			'[object Array]': 'a',
+			'function' : 'f',
+			'[object Function]' : 'f'
+		},
+		getType = function (o) { // resolve object type
+			var t = typeMap[typeof o] || typeMap[Object.prototype.toString.call(o)];
+			return t !== 's' || t.length ? t : 0;
 		},
 		feats = [ // captures features of this instance
 			{}, // property names and permissions
@@ -30,7 +32,7 @@ function Proxy(source,scheme) {
 		],
 		pm,kind,key,cfg; // loop vars
 	// if not invoked with new, throw error
-	if (!(pxy instanceof arguments.callee)) throw new Error('Proxy: missing new operator');
+	if (!(pxy.hasOwnProperty && pxy instanceof arguments.callee)) throw new Error('Proxy: missing new operator');
 	// if no source is given, throw error
 	if (source == null) throw new Error('Proxy: invalid source');
 	// with each mapping...
@@ -39,10 +41,10 @@ function Proxy(source,scheme) {
 		if (!scheme.hasOwnProperty(key)) continue;
 		// capture property-map
 		pm = scheme[key];
-		// capture kind of map
-		kind = typeof pm;
+		// capture type of map
+		kind = getType(pm);
 		// if this is a function...
-		if (kind === kinds.f) {
+		if (kind === 'f') {
 			// add scoped method to instance
 			pxy[key] = function () {return pm.apply(source,arguments)};
 			// capture method name
@@ -53,59 +55,54 @@ function Proxy(source,scheme) {
 				get: 0,
 				set: 0
 			};
-			// if pm is an Array...
-			if (kind === kinds.o && pm instanceof Ary) {
+			// if this is an array (proxy map)...
+			if (kind === 'a') {
 				// if this map's only element is another array...
-				if (pm.length === 1 && pm[0] instanceof Ary) {
+				if (pm.length === 1 && getType(pm[0]) === 'a') {
 					// change value in scheme to it's nested value
 					scheme[key] = pm[0];
-					// flag that this config will have an array for a static value
+					// flag that this config will have an array for a fixed value
 					cfg.isAry = 1;
-				} else { // otherwise, when the first element is not an array or more elements exist...
-					// refine kind (so it's recognized as a mapping)
-					kind = kinds.a;
-					// if the array has no length, define full-access pm
+				} else { // otherwise, when this contains more than an array...
+					// if this array has no length, redefine as full-access pm
 					if (!pm.length) pm = scheme[key] = [key,1];
-				}
-			}
-			// if this is an array (proxy map)...
-			if (kind === kinds.a) {
-				// capture types for get, check and set indice
-				kind = [typeof pm[0],typeof pm[1],typeof pm[2]];
-				// if get is a function or a valid string...
-				if (kind[0] === kinds.f || (kind[0] === kinds.s && kind[0].length)) {
-					// flag that this mapping gets
-					cfg.get = 1;
-					// define getter function or property based on kind
-					cfg[kind[0] === kinds.f ? 'getter' : 'property'] = pm[0];
-				}
-				// if set is a function...
-				if (kind[2] === kinds.f) {
-					// flag that this mapping sets
-					cfg.set = 1;
-					// define setter
-					cfg.setter = pm[2];
-				}
-				// if there is a second index...
-				if (pm.length > 1) {
-					// flag that this mapping sets (again)
-					cfg.set = 1;
-					// if the validator is a function or valid string...
-					if (kind[1] === kinds.f || (kind[1] === kinds.s && kind[1].length)) {
-						// define validator as type or function, based on kind
-						cfg[kind[1] === kinds.f ? 'validator' : 'type'] = pm[1];
-					} else { // otherwise, when validator is not recognized...
-						// flag that all values are valid
-						cfg.validAny = 1;
+					// capture types for get, vet and set indexes
+					kind = [getType(pm[0]),getType(pm[1]),getType(pm[2])];
+					// if get is a function or string...
+					if (kind[0] === 'f' || kind[0] === 's') {
+						// flag that this mapping gets
+						cfg.get = 1;
+						// define getter function or property based on kind
+						cfg[kind[0] === 'f' ? 'getter' : 'property'] = pm[0];
+					}
+					// if set is a function...
+					if (kind[2] === 'f') {
+						// flag that this mapping sets
+						cfg.set = 1;
+						// define setter
+						cfg.setter = pm[2];
+					}
+					// if there is a second index...
+					if (pm.length > 1) {
+						// flag that this mapping sets (again)
+						cfg.set = 1;
+						// if the validator is a function or string...
+						if (kind[1] === 'f' || kind[1] === 's') {
+							// define validator as type or function, based on kind
+							cfg[kind[1] === kinds.f ? 'validator' : 'type'] = pm[1];
+						} else { // otherwise, when validator is not recognized...
+							// flag that all values are valid
+							cfg.validAny = 1;
+						}
 					}
 				}
 			} else { // otherwise, when not an array (or function)...
 				// flag that this mapping gets
 				cfg.get = 1;
-				// flag that this is a static configuration
-				cfg.static = 1;
-				// capture static value
-				cfg.staticValue = scheme[key];
+				// flag that this is a fixed configuration
+				cfg.fixed = 1;
+				// capture fixed value
+				cfg.fixedValue = scheme[key];
 			}
 			// if this mapping gets or sets...
 			if (cfg.get || cfg.set) {
@@ -151,9 +148,9 @@ function Proxy(source,scheme) {
 		// if a config exist for the target property...
 		if (cfg) {
 			// if the target action is available...
-			if (cfg && cfg[action]) {
-				// if static, return static value (clone arrays to protect indice)
-				if (cfg.static) return cfg.isAry ? cfg.staticValue.concat() : cfg.staticValue;
+			if (cfg[action]) {
+				// if fixed, return fixed value (clone arrays for protection)
+				if (cfg.fixed) return cfg.isAry ? cfg.fixedValue.concat() : cfg.fixedValue;
 				// if setting...
 				if (isSet) {
 					// (otherwise) if no validation is needed or the value validates...
@@ -161,9 +158,9 @@ function Proxy(source,scheme) {
 						// if there is a setter or getter function, return result of invoking either function (setter has precedence)
 						if ((cfg.setter || cfg.getter) && setArgs.splice(2,1,'s')) return (cfg.setter || cfg.getter).apply(source,setArgs);
 						// (otherwise) set the configured property or given alias in the proxied object
-						source[cfg.property || alias] = value;
-						// flag success with setting the private property
-						return !0;
+						source[action = (cfg.property || alias)] = value;
+						// flag success if value is now the same
+						return source[action] === value;
 					}
 				} else { // otherwise, when getting...
 					// if a function, return result of executing the function within the scope of the proxied object
