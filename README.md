@@ -1,6 +1,6 @@
 # Proxy
 
-Version 1.0
+Version 1.0.1
 
 Proxy offers a structured approach to indirect object manipulation. A Proxy instance accesses and alters it’s source according to it’s scheme.
 
@@ -16,6 +16,6 @@ See the wiki at, http://github.com/bemson/Proxy/wiki/
 
 ### Licensing
 
-Proxy is available under the MIT-License - http://en.wikipedia.org/wiki/MIT_License#License_terms
+Proxy is available under the terms of the MIT-License - http://en.wikipedia.org/wiki/MIT_License#License_terms
 
 Copyright 2010, Bemi Faison
