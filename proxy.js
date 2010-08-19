@@ -22,9 +22,9 @@ function Proxy(source,scheme) {
 			'function' : 'f',
 			'[object Function]' : 'f'
 		},
-		getType = function (o) { // resolve object type
+		getType = function (o,strict) { // resolve object type
 			var t = typeMap[typeof o] || typeMap[Object.prototype.toString.call(o)];
-			return t !== 's' || t.length ? t : 0;
+			return (t !== 's' || t.length) && (!strict || t !== 'f' || o.toString().match(/\breturn\b/)) ? t : 0;
 		},
 		feats = [ // captures features of this instance
 			{}, // property names and permissions
@@ -67,7 +67,7 @@ function Proxy(source,scheme) {
 					// if this array has no length, redefine as full-access pm
 					if (!pm.length) pm = scheme[key] = [key,1];
 					// capture types for get, vet and set indexes
-					kind = [getType(pm[0]),getType(pm[1]),getType(pm[2])];
+					kind = [getType(pm[0],1),getType(pm[1],1),getType(pm[2],1)];
 					// if get is a function or string...
 					if (kind[0] === 'f' || kind[0] === 's') {
 						// flag that this mapping gets
