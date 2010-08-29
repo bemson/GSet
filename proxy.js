@@ -10,9 +10,10 @@
 * Creates an instance with methods scoped to another object.
 *
 * @param {Object} source The object to use as a scope for mapped methods.
-* @param {Object} [scheme] Collection of methods and property-maps. Functions become methods of the instance. Property-maps are compiled for use by the instance method, gset().
+* @param {Object} [scheme] Collection of methods and property-maps. Functions become methods of the instance. Property-maps are compiled for use by the instance method, _gset().
+* @param {Object}
 **/
-function Proxy(source,scheme) {
+function Proxy(source, scheme, sig) {
 	// init vars
 	var pxy = this, // alias self
 		cfgs = {}, // information about configurable properties
@@ -31,6 +32,8 @@ function Proxy(source,scheme) {
 			[] // method names
 		],
 		pm,kind,key,cfg; // loop vars
+	// if sig is not an object, create one
+	if (typeof sig !== 'object') sig = {};
 	// if not invoked with new, throw error
 	if (!(pxy.hasOwnProperty && pxy instanceof arguments.callee)) throw new Error('Proxy: missing new operator');
 	// if no source is given, throw error
@@ -110,6 +113,13 @@ function Proxy(source,scheme) {
 				feats[0][key] = cfg.get - cfg.set;
 				// add to cfgs
 				cfgs[key] = cfg;
+				// create getter/setter method with this key - aliases proxy
+				pxy[key] = function () {
+					var args = arguments,
+						vars = [key];
+					if (args.length) vars.push(args[0]);
+					return pxy._gset.apply(pxy, vars);
+				};
 			}
 		}
 	}
@@ -124,7 +134,7 @@ function Proxy(source,scheme) {
 	*							When no arguments are given, an object of available properties and accessor codes is returned.
 	*							When alias references this instance, an array of method names.
 	**/
-	pxy.gset = function (alias) {
+	pxy._gset = function (alias) {
 		// init vars
 		var args = arguments, // alias arguments
 			value = args[1], // capture value in arguments (if any)
@@ -144,6 +154,9 @@ function Proxy(source,scheme) {
 
 		// if this instance was given, return copy of method names
 		if (alias === pxy) return feats[1].concat();
+		
+		// if the alias is this proxy's signature, return the source object
+		if (alias === sig) return source;
 
 		// if a config exist for the target property...
 		if (cfg) {
