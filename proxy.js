@@ -27,10 +27,7 @@ function Proxy(source, scheme, sig) {
 			var t = typeMap[typeof o] || typeMap[Object.prototype.toString.call(o)];
 			return (t !== 's' || t.length) && (!strict || t !== 'f' || o.toString().match(/\breturn\b/)) ? t : 0;
 		},
-		feats = [ // captures features of this instance
-			{}, // property names and permissions
-			[] // method names
-		],
+		members = {}, // captue member names and code
 		pm,kind,key,cfg; // loop vars
 	// if sig is not an object, create one
 	if (typeof sig !== 'object') sig = {};
@@ -50,8 +47,8 @@ function Proxy(source, scheme, sig) {
 		if (kind === 'f') {
 			// add scoped method to instance
 			pxy[key] = function () {return pm.apply(source,arguments)};
-			// capture method name
-			feats[1].push(key);
+			// add member name and use custom code
+			members[key] = 2;
 		} else { // otherwise, when not a function...
 			// define a configuration information object for this mapping
 			cfg = {
@@ -109,14 +106,16 @@ function Proxy(source, scheme, sig) {
 			}
 			// if this mapping gets or sets...
 			if (cfg.get || cfg.set) {
+				// re-init keyName for closure
+				var keyName = key;
 				// capture code for this config, based on get/set states
-				feats[0][key] = cfg.get - cfg.set;
+				members[key] = cfg.get - cfg.set;
 				// add to cfgs
 				cfgs[key] = cfg;
 				// create getter/setter method with this key - aliases proxy
 				pxy[key] = function () {
 					var args = arguments,
-						vars = [key];
+						vars = [keyName];
 					if (args.length) vars.push(args[0]);
 					return pxy._gset.apply(pxy, vars);
 				};
@@ -146,15 +145,12 @@ function Proxy(source, scheme, sig) {
 
 		// if no arguments were given...
 		if (!args.length) {
-			// prototype codes to constructor
-			codeConst.prototype = feats[0];
-			// return copy of codes
+			// prototype members to constructor
+			codeConst.prototype = members;
+			// return copy of members
 			return new codeConst();
 		}
 
-		// if this instance was given, return copy of method names
-		if (alias === pxy) return feats[1].concat();
-		
 		// if the alias is this proxy's signature, return the source object
 		if (alias === sig) return source;
 

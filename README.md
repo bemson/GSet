@@ -1,7 +1,5 @@
 # Proxy
 
-Version 1.0.0 - "nogset" branch
-
 Proxy offers a structured approach to indirect object manipulation. A Proxy instance accesses and alters it’s source according to it’s scheme.
 
 ### Installing
@@ -13,7 +11,6 @@ Proxy is available as an external JavaScript library file. Include it in your we
 ### Using
 
 See the wiki at, http://github.com/bemson/Proxy/wiki/
-The wiki is not up-to-date for this branch. Figuring it out.
 
 ### Licensing
 
