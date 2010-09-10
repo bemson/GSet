@@ -10,7 +10,9 @@
 * Creates an instance with methods scoped to another object.
 *
 * @param {Object} source The object to use as a scope for mapped methods.
-* @param {Object} [scheme] Collection of methods and property-maps. Functions become methods of the instance. Property-maps are compiled for use by the instance method, _gset().
+* @param {Object} [scheme] Collection of methods and property-maps.
+*				Functions become methods of the instance.
+*				Property-maps are structured arrays, compiled for use by the instance method, _gset().
 * @param {Object}
 **/
 function Proxy(source, scheme, sig) {
@@ -55,70 +57,61 @@ function Proxy(source, scheme, sig) {
 				get: 0,
 				set: 0
 			};
-			// if this is an array (proxy map)...
-			if (kind === 'a') {
-				// if this map's only element is another array...
-				if (pm.length === 1 && getType(pm[0]) === 'a') {
+			// if not an array or this is a nested array...
+			if (kind !== 'a' || (pm.length === 1 && (kind = getType(pm[0])) === 'a')) {
+				// if this was a nested array...
+				if (kind === 'a') {
 					// change value in scheme to it's nested value
 					scheme[key] = pm[0];
 					// flag that this config will have an array for a fixed value
 					cfg.isAry = 1;
-				} else { // otherwise, when this contains more than an array...
-					// if this array has no length, redefine as full-access pm
-					if (!pm.length) pm = scheme[key] = [key,1];
-					// capture types for get, vet and set indexes
-					kind = [getType(pm[0],1),getType(pm[1],1),getType(pm[2],1)];
-					// if get is a function or string...
-					if (kind[0] === 'f' || kind[0] === 's') {
-						// flag that this mapping gets
-						cfg.get = 1;
-						// define getter function or property based on kind
-						cfg[kind[0] === 'f' ? 'getter' : 'getProperty'] = pm[0];
-					}
-					// if set is a function or string...
-					if (kind[2] === 'f' || kind[2] === 's') {
-						// flag that this mapping sets
-						cfg.set = 1;
-						// define getter function or property based on kind
-						cfg[kind[2] === 'f' ? 'setter' : 'setProperty'] = pm[2];
-					}
-					// if there is a second index...
-					if (pm.length > 1) {
-						// flag that this mapping sets (again)
-						cfg.set = 1;
-						// if the validator is a function or string...
-						if (kind[1] === 'f' || kind[1] === 's') {
-							// define validator as type or function, based on kind
-							cfg[kind[1] === 'f' ? 'validator' : 'type'] = pm[1];
-						} else { // otherwise, when validator is not recognized...
-							// flag that all values are valid
-							cfg.validAny = 1;
-						}
-					}
 				}
-			} else { // otherwise, when not an array (or function)...
 				// flag that this mapping gets
 				cfg.get = 1;
 				// flag that this is a fixed configuration
 				cfg.fixed = 1;
 				// capture fixed value
 				cfg.fixedValue = scheme[key];
+			} else { // otherwise, when this is a property-map...
+				// if this array has no length, redefine as full-access property map
+				if (!pm.length) pm = scheme[key] = [key,1];
+				// capture types for get, vet and set indexes
+				kind = [getType(pm[0],1),getType(pm[1],1),getType(pm[2],1)];
+				// if get is truthy...
+				if (pm[0]) {
+					// flag that this mapping gets
+					cfg.get = 1;
+					// if get is a function or string, define getter function or property based on kind
+					if (kind[0] === 'f' || kind[0] === 's') cfg[kind[0] === 'f' ? 'getter' : 'getProperty'] = pm[0];
+				}
+				// if vet or set is truthy, flag that this mapping sets
+				if (pm[2] || pm[1]) cfg['set'] = 1;
+				// if the validator is a function or string...
+				if (kind[1] === 'f' || kind[1] === 's') {
+					// define validator as type or function, based on kind
+					cfg[kind[1] === 'f' ? 'validator' : 'type'] = pm[1];
+				} else { // otherwise, when the validator is not recognized...
+					// flag that any value is valid
+					cfg.validAny = 1;
+				}
+				// if set is a function or string, define getter function or setProperty based on kind
+				if (kind[2] === 'f' || kind[2] === 's') cfg[kind[2] === 'f' ? 'setter' : 'setProperty'] = pm[2];
 			}
 			// if this mapping gets or sets...
 			if (cfg.get || cfg.set) {
-				// re-init keyName for closure
-				var keyName = key;
 				// capture code for this config, based on get/set states
 				members[key] = cfg.get - cfg.set;
 				// add to cfgs
 				cfgs[key] = cfg;
 				// create getter/setter method with this key - aliases proxy
-				pxy[key] = function () {
-					var args = arguments,
-						vars = [keyName];
-					if (args.length) vars.push(args[0]);
-					return pxy._gset.apply(pxy, vars);
-				};
+				pxy[key] = (function (key) {
+					return function () {
+						var args = arguments,
+							vars = [key];
+						if (args.length) vars.push(args[0]);
+						return pxy._gset.apply(pxy, vars);
+					}
+				})(key);
 			}
 		}
 	}
@@ -167,15 +160,15 @@ function Proxy(source, scheme, sig) {
 						// if there is a setter, or no setProperty and a getter function, return result of invoking either function (setter has precedence)
 						if ((cfg.setter || (!cfg.setProperty && cfg.getter)) && setArgs.splice(2,1,'s')) return (cfg.setter || cfg.getter).apply(source,setArgs);
 						// (otherwise) set the target property or given alias in the source object
-						source[action = (cfg.setProperty || cfg.getProperty || alias)] = value;
+						source[(action = cfg.setProperty || cfg.getProperty || alias)] = value;
 						// flag success if value is now the same
 						return source[action] === value;
 					}
 				} else { // otherwise, when getting...
 					// if a function, return result of executing the function within the scope of the proxied object
 					if (cfg.getter) return cfg.getter.apply(source,setArgs);
-					// (otherwise) return value of property in source object
-					return source[cfg.property];
+					// (otherwise) return value of property (or given alias) in source object
+					return source[cfg.getProperty || alias];
 				}
 			} else { // otherwise, when the action is not available...
 				// throw error for illegal action
