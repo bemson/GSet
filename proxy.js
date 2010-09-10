@@ -73,14 +73,14 @@ function Proxy(source, scheme, sig) {
 						// flag that this mapping gets
 						cfg.get = 1;
 						// define getter function or property based on kind
-						cfg[kind[0] === 'f' ? 'getter' : 'property'] = pm[0];
+						cfg[kind[0] === 'f' ? 'getter' : 'getProperty'] = pm[0];
 					}
-					// if set is a function...
+					// if set is a function or string...
 					if (kind[2] === 'f') {
 						// flag that this mapping sets
 						cfg.set = 1;
-						// define setter
-						cfg.setter = pm[2];
+						// define getter function or property based on kind
+						cfg[kind[2] === 'f' ? 'setter' : 'setProperty'] = pm[2];
 					}
 					// if there is a second index...
 					if (pm.length > 1) {
@@ -162,12 +162,12 @@ function Proxy(source, scheme, sig) {
 				if (cfg.fixed) return cfg.isAry ? cfg.fixedValue.concat() : cfg.fixedValue;
 				// if setting...
 				if (isSet) {
-					// (otherwise) if no validation is needed or the value validates...
+					// if no validation is needed or the value validates...
 					if (cfg.validAny || ((!cfg.type || typeof value === cfg.type) && (!cfg.validator || cfg.validator.apply(source,setArgs)))) {
-						// if there is a setter or getter function, return result of invoking either function (setter has precedence)
-						if ((cfg.setter || cfg.getter) && setArgs.splice(2,1,'s')) return (cfg.setter || cfg.getter).apply(source,setArgs);
-						// (otherwise) set the configured property or given alias in the proxied object
-						source[action = (cfg.property || alias)] = value;
+						// if there is a setter, or no setProperty and a getter function, return result of invoking either function (setter has precedence)
+						if ((cfg.setter || (!cfg.setProperty && cfg.getter)) && setArgs.splice(2,1,'s')) return (cfg.setter || cfg.getter).apply(source,setArgs);
+						// (otherwise) set the target property or given alias in the source object
+						source[action = (cfg.setProperty || cfg.getProperty || alias)] = value;
 						// flag success if value is now the same
 						return source[action] === value;
 					}
