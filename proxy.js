@@ -76,7 +76,7 @@ function Proxy(source, scheme, sig) {
 						cfg[kind[0] === 'f' ? 'getter' : 'getProperty'] = pm[0];
 					}
 					// if set is a function or string...
-					if (kind[2] === 'f') {
+					if (kind[2] === 'f' || kind[2] === 's') {
 						// flag that this mapping sets
 						cfg.set = 1;
 						// define getter function or property based on kind
