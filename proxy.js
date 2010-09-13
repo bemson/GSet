@@ -30,7 +30,16 @@ function Proxy(source, scheme, sig) {
 			return (t !== 's' || t.length) && (!strict || t !== 'f' || o.toString().match(/\breturn\b/)) ? t : 0;
 		},
 		members = {}, // captue member names and code
-		pm,kind,key,cfg; // loop vars
+		pm,kind,key,cfg, // loop vars
+		gsetCall = function (prop) { // get function to call scheme key
+			return function (value) {
+				// init vars
+				var vars = [prop]; // init arguments to send _gset
+				// if any arguments are present, add value to assign
+				if (arguments.length) vars.push(value);
+				return pxy._gset.apply(pxy, vars);
+			}
+		};
 	// if sig is not an object, create one
 	if (typeof sig !== 'object') sig = {};
 	// if not invoked with new, throw error
@@ -103,15 +112,8 @@ function Proxy(source, scheme, sig) {
 				members[key] = cfg.get - cfg.set;
 				// add to cfgs
 				cfgs[key] = cfg;
-				// create getter/setter method with this key - aliases proxy
-				pxy[key] = (function (key) {
-					return function () {
-						var args = arguments,
-							vars = [key];
-						if (args.length) vars.push(args[0]);
-						return pxy._gset.apply(pxy, vars);
-					}
-				})(key);
+				// create getter/setter call to gset for this key
+				pxy[key] = gsetCall(key);
 			}
 		}
 	}
