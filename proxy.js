@@ -1,5 +1,4 @@
 /**
-* Proxy v1.0.1
 * http://github.com/bemson/Proxy/
 *
 * Copyright 2010, Bemi Faison
@@ -29,15 +28,20 @@ function Proxy(source, scheme, sig) {
 			var t = typeMap[typeof o] || typeMap[Object.prototype.toString.call(o)];
 			return (t !== 's' || t.length) && (!strict || t !== 'f' || o.toString().match(/\breturn\b/)) ? t : 0;
 		},
-		members = {}, // captue member names and code
+		members = {}, // capture member names and code
 		pm,kind,key,cfg, // loop vars
-		gsetCall = function (prop) { // get function to call scheme key
+		gsetCall = function (prop) { // function to call gset for a given property
 			return function (value) {
 				// init vars
 				var vars = [prop]; // init arguments to send _gset
 				// if any arguments are present, add value to assign
 				if (arguments.length) vars.push(value);
 				return pxy._gset.apply(pxy, vars);
+			}
+		},
+		customCall = function (key) { // function to call custom method
+			return function () {
+				return scheme[key].apply(source, arguments);
 			}
 		};
 	// if sig is not an object, create one
@@ -57,7 +61,7 @@ function Proxy(source, scheme, sig) {
 		// if this is a function...
 		if (kind === 'f') {
 			// add scoped method to instance
-			pxy[key] = function () {return pm.apply(source,arguments)};
+			pxy[key] = customCall(key);
 			// add member name and use custom code
 			members[key] = 2;
 		} else { // otherwise, when not a function...
