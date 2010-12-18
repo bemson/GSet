@@ -5,9 +5,9 @@
 * Licensed under terms of the MIT License
 **/
 
-(function (window) {
+(function () {
 	// init vars
-	var pkey = []; // key for proxy instances
+	var pkey = {}; // key for proxy instances
 
 	/**
 	* Creates an instance with methods scoped to another object.
@@ -59,13 +59,15 @@
 		if (scheme instanceof Proxy) {
 			// get cfgs and members of existing proxy
 			key = scheme._gset(pkey);
-			// set cfgs
-			cfgs = key[0];
-			// set members
-			members = key[1];
-			// with each member key...
+			// get new scheme
+			scheme = key[0];
+			// get cfgs
+			cfgs = key[1];
+			// get members
+			members = key[2];
+			// with each member...
 			for (key in members) {
-				// if this member code is 2...
+				// if the code is 2...
 				if (members[key] === 2) {
 					// add scoped method to instance
 					pxy[key] = customCall(key);
@@ -178,8 +180,8 @@
 
 			// if the alias is this proxy's signature, return the source object
 			if (alias === sig) return source;
-			// if the alias is the proxy key, return the config collection
-			if (alias === pkey) return [cfgs,members];
+			// if the alias is the proxy key, return the parts for cloning this proxy
+			if (alias === pkey) return [scheme, cfgs, members];
 
 			// if a config exist for the target property...
 			if (cfg) {
@@ -222,4 +224,4 @@
 			return !1;
 		};
 	}
-})(window);
+})();
