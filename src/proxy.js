@@ -7,7 +7,29 @@
 
 (function () {
 	// init vars
-	var pkey = {}; // key for proxy instances
+	var pkey = {}, // key for proxy instances
+		gsetCall = function (pxy, prop) { // calls gset via a curried function
+			return function () {
+				// send target property and any arguments as the value(s)
+				return pxy._gset.apply(pxy, [prop].concat(arguments.length ? [].slice.call(arguments) : []));
+			}
+		},
+		customCall = function (source, scheme, key) { // function to call custom method
+			return function () {
+				return scheme[key].apply(source, arguments);
+			}
+		},
+		typeMap = { // collection of allowed types
+			'string': 's',
+			'[object Array]': 'a',
+			'function' : 'f',
+			'[object Function]' : 'f'
+		},
+		r_fnc = /\breturn\b/, // regex ensures a function returns something
+		getType = function (o, rtn) { // resolve object type
+			var t = typeMap[typeof o] || typeMap[Object.prototype.toString.call(o)];
+			return (t !== 's' || t.length) && (!rtn || t !== 'f' || o.toString().match(r_fnc)) ? t : 0;
+		};
 
 	/**
 	* Creates an instance with methods scoped to another object.
@@ -22,33 +44,8 @@
 		// init vars
 		var pxy = this, // alias self
 			cfgs = {}, // information about configurable properties
-			typeMap = { // collection of allowed types
-				'string': 's',
-				'[object Array]': 'a',
-				'function' : 'f',
-				'[object Function]' : 'f'
-			},
-			r_fnc = /\breturn\b/, // regex ensures a function returns something
-			getType = function (o,rtn) { // resolve object type
-				var t = typeMap[typeof o] || typeMap[Object.prototype.toString.call(o)];
-				return (t !== 's' || t.length) && (!rtn || t !== 'f' || o.toString().match(r_fnc)) ? t : 0;
-			},
 			members = {}, // capture member names and code
-			pm,kind,key,cfg, // loop vars
-			gsetCall = function (prop) { // function to call gset for a given property
-				return function (value) {
-					// init vars
-					var vars = [prop]; // init arguments to send _gset
-					// if any arguments are present, add value to assign
-					if (arguments.length) vars.push(value);
-					return pxy._gset.apply(pxy, vars);
-				}
-			},
-			customCall = function (key) { // function to call custom method
-				return function () {
-					return scheme[key].apply(source, arguments);
-				}
-			};
+			pm, kind, key, cfg; // loop vars
 		// if sig is not an object, create one
 		if (typeof sig !== 'object') sig = {};
 		// if not invoked with new, throw error
@@ -70,10 +67,10 @@
 				// if the code is 2...
 				if (members[key] === 2) {
 					// add scoped method to instance
-					pxy[key] = customCall(key);
+					pxy[key] = customCall(source, scheme, key);
 				} else { // otherwise, when a gset definition...
 					// create getter/setter call to gset for this key
-					pxy[key] = gsetCall(key);
+					pxy[key] = gsetCall(pxy, key);
 				}
 			}
 		} else { // otherwise, when the scheme is not a proxy...
@@ -88,7 +85,7 @@
 				// if this is a function...
 				if (kind === 'f') {
 					// add scoped method to instance
-					pxy[key] = customCall(key);
+					pxy[key] = customCall(source, scheme, key);
 					// add member name and use custom code
 					members[key] = 2;
 				} else { // otherwise, when not a function...
@@ -144,7 +141,7 @@
 						// add to cfgs
 						cfgs[key] = cfg;
 						// create getter/setter call to gset for this key
-						pxy[key] = gsetCall(key);
+						pxy[key] = gsetCall(pxy, key);
 					}
 				}
 			}
@@ -207,7 +204,7 @@
 						}
 					} else { // otherwise, when getting...
 						// if a function, return result of executing the function within the scope of the proxied object
-						if (cfg.getter) return cfg.getter.apply(source,setArgs);
+						if (cfg.getter) return cfg.getter.apply(source, setArgs);
 						// (otherwise) return value of property (or given alias) in source object
 						return source[cfg.getProperty || alias];
 					}
