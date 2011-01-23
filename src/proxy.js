@@ -7,28 +7,44 @@
 
 (function () {
 	// init vars
-	var pkey = {}, // key for proxy instances
-		gsetCall = function (pxy, prop) { // calls gset via a curried function
-			return function () {
-				// send target property and any arguments as the value(s)
-				return pxy._gset.apply(pxy, [prop].concat(arguments.length ? [].slice.call(arguments) : []));
+	var sys = {
+			gsetCall: function (pxy, prop) { // calls gset via a curried function
+				return function () {
+					// send target property and any arguments as the value(s)
+					return pxy._gset.apply(pxy, [prop].concat(arguments.length ? [].slice.call(arguments) : []));
+				}
+			},
+			customCall: function (source, scheme, key) { // function to call custom method
+				return function () {
+					return scheme[key].apply(source, arguments)
+				}
+			},
+			typeMap: { // collection of allowed types
+				'string': 's',
+				'[object Array]': 'a',
+				'function' : 'f',
+				'[object Function]' : 'f'
+			},
+			r_fnc: /\breturn\b/, // regex ensures a function returns something
+			getType: function (o, rtn) { // resolve object type
+				var t = sys.typeMap[typeof o] || sys.typeMap[Object.prototype.toString.call(o)];
+				return (t !== 's' || t.length) && (!rtn || t !== 'f' || o.toString().match(sys.r_fnc)) ? t : 0;
+			},
+			testValueTypes: function (types, values) {
+				var i = 0, j = values.length, q, z = types.length,t,r = 1;
+				for (; i < j; i++) {
+					t = typeof values[i];
+					r = 0;
+					for (q = 0; q < z; q++) {
+						if (types[q] === t) {
+							r = 1;
+							break
+						}
+					}
+					if (!r) break;
+				}
+				return r;
 			}
-		},
-		customCall = function (source, scheme, key) { // function to call custom method
-			return function () {
-				return scheme[key].apply(source, arguments);
-			}
-		},
-		typeMap = { // collection of allowed types
-			'string': 's',
-			'[object Array]': 'a',
-			'function' : 'f',
-			'[object Function]' : 'f'
-		},
-		r_fnc = /\breturn\b/, // regex ensures a function returns something
-		getType = function (o, rtn) { // resolve object type
-			var t = typeMap[typeof o] || typeMap[Object.prototype.toString.call(o)];
-			return (t !== 's' || t.length) && (!rtn || t !== 'f' || o.toString().match(r_fnc)) ? t : 0;
 		};
 
 	/**
@@ -55,7 +71,7 @@
 		// if the scheme is a proxy...
 		if (scheme instanceof Proxy) {
 			// get cfgs and members of existing proxy
-			key = scheme._gset(pkey);
+			key = scheme._gset(sys);
 			// get new scheme
 			scheme = key[0];
 			// get cfgs
@@ -67,10 +83,10 @@
 				// if the code is 2...
 				if (members[key] === 2) {
 					// add scoped method to instance
-					pxy[key] = customCall(source, scheme, key);
+					pxy[key] = sys.customCall(source, scheme, key);
 				} else { // otherwise, when a gset definition...
 					// create getter/setter call to gset for this key
-					pxy[key] = gsetCall(pxy, key);
+					pxy[key] = sys.gsetCall(pxy, key);
 				}
 			}
 		} else { // otherwise, when the scheme is not a proxy...
@@ -81,11 +97,11 @@
 				// capture property-map
 				pm = scheme[key];
 				// capture type of map
-				kind = getType(pm);
+				kind = sys.getType(pm);
 				// if this is a function...
 				if (kind === 'f') {
 					// add scoped method to instance
-					pxy[key] = customCall(source, scheme, key);
+					pxy[key] = sys.customCall(source, scheme, key);
 					// add member name and use custom code
 					members[key] = 2;
 				} else { // otherwise, when not a function...
@@ -95,7 +111,7 @@
 						set: 0
 					};
 					// if not an array or this is a nested array...
-					if (kind !== 'a' || (pm.length === 1 && (kind = getType(pm[0])) === 'a')) {
+					if (kind !== 'a' || (pm.length === 1 && (kind = sys.getType(pm[0])) === 'a')) {
 						// if this was a nested array...
 						if (kind === 'a') {
 							// change value in scheme to it's nested value
@@ -112,27 +128,36 @@
 					} else { // otherwise, when this is a property-map...
 						// if this array has no length, redefine as full-access property map
 						if (!pm.length) pm = scheme[key] = [key,1];
-						// capture types for get, vet and set indexes
-						kind = [getType(pm[0],1),getType(pm[1],1),getType(pm[2],1)];
-						// if get is truthy...
-						if (pm[0]) {
+						// capture types for get, vet and set indexes (get and vet must return values)
+						kind = [sys.getType(pm[0],1), sys.getType(pm[1],1), sys.getType(pm[2])];
+						// if get is truthy and type is valid...
+						if (pm[0] && kind[0]) {
 							// flag that this mapping gets
 							cfg.get = 1;
 							// if get is a function or string, define getter function or property based on kind
-							if (kind[0] === 'f' || kind[0] === 's') cfg[kind[0] === 'f' ? 'getter' : 'getProperty'] = pm[0];
+							if (/[fs]/.test(kind[0])) cfg[kind[0] === 'f' ? 'getter' : 'getProperty'] = pm[0];
 						}
-						// if vet or set is truthy, flag that this mapping sets
-						if (pm[2] || pm[1]) cfg['set'] = 1;
-						// if the validator is a function or string...
-						if (kind[1] === 'f' || kind[1] === 's') {
+						// if vet or set are truthy and valid, flag that this mapping sets
+						if (pm[1] || (pm[2] && kind[2])) cfg.set = 1;
+						// if vet is valid and a recognized type (function, string, or array)...
+						if (pm[1] && kind[1] && /[afs]/.test(kind[1])) {
 							// define validator as type or function, based on kind
-							cfg[kind[1] === 'f' ? 'validator' : 'type'] = pm[1];
-						} else { // otherwise, when the validator is not recognized...
+							cfg[kind[1] === 'f' ? 'validator' : 'types'] = kind[1] === 's' ? [pm[1]] : pm[1];
+						} else { // otherwise, allow any value...
 							// flag that any value is valid
 							cfg.validAny = 1;
 						}
-						// if set is a function or string, define getter function or setProperty based on kind
-						if (kind[2] === 'f' || kind[2] === 's') cfg[kind[2] === 'f' ? 'setter' : 'setProperty'] = pm[2];
+						// if set is a function or string...
+						if (kind[2] && /[fs]/.test(kind[2])) {
+							// define getter function or setProperty based on kind
+							cfg[kind[2] === 'f' ? 'setter' : 'setProperty'] = pm[2];
+						} else if (cfg.getter || cfg.getProperty) { // or, when there is a getter function or property...
+							// use getter function or property for setting
+							cfg[cfg.getter ? 'setter' : 'setProperty'] = cfg.getter || cfg.getProperty;
+						} else { // otherwise, when there is no get to use for setting...
+							// remove set flag
+							cfg.set = 0;
+						}
 					}
 					// if this mapping gets or sets...
 					if (cfg.get || cfg.set) {
@@ -141,7 +166,7 @@
 						// add to cfgs
 						cfgs[key] = cfg;
 						// create getter/setter call to gset for this key
-						pxy[key] = gsetCall(pxy, key);
+						pxy[key] = sys.gsetCall(pxy, key);
 					}
 				}
 			}
@@ -159,11 +184,11 @@
 		**/
 		pxy._gset = function (alias) {
 			// init vars
-			var args = arguments, // alias arguments
-				value = args[1], // capture value in arguments (if any)
-				isSet = args.length > 1, // flag when attempting to set a property
+			var args = [].slice.call(arguments), // alias arguments
+				values = args.slice(1), // capture value in arguments (if any)
+				isSet = values.length, // flag when attempting to set a property
 				action = isSet ? 'set' : 'get', // indicates when setting the target property
-				setArgs = [isSet ? value : null, alias, isSet ? 'v' : 'g', pxy], // args to send functions
+				setArgs = [values, alias, isSet ? 'v' : 'g', pxy], // args to send functions
 				cfg = cfgs[alias], // alias the config for the requested property
 				codeConst = function () {}; // constructor to clone codes
 
@@ -177,8 +202,8 @@
 
 			// if the alias is this proxy's signature, return the source object
 			if (alias === sig) return source;
-			// if the alias is the proxy key, return the parts for cloning this proxy
-			if (alias === pkey) return [scheme, cfgs, members];
+			// if the alias is the private key, return the parts for cloning this proxy
+			if (alias === sys) return [scheme, cfgs, members];
 
 			// if a config exist for the target property...
 			if (cfg) {
@@ -189,18 +214,18 @@
 					// if setting...
 					if (isSet) {
 						// if no validation is needed or the value validates...
-						if (cfg.validAny || ((!cfg.type || typeof value === cfg.type) && (!cfg.validator || cfg.validator.apply(source,setArgs)))) {
+						if (cfg.validAny || ((cfg.validator && cfg.validator.apply(source, setArgs)) || sys.testValueTypes(cfg.types, values))) {
 							// if there is a setter, or no setProperty and a getter function (setter has precedence)...
 							if ((cfg.setter || (!cfg.setProperty && cfg.getter)) && setArgs.splice(2,1,'s')) {
 								// capture result of setter/getter function
-								action = (cfg.setter || cfg.getter).apply(source,setArgs);
+								action = (cfg.setter || cfg.getter).apply(source, setArgs);
 								// return true by default, otherwise return the return value, or it's boolean equivalent when setting
 								return (action === undefined) ? !0 : (isSet ? !!action : action);
 							}
 							// (otherwise) set the target property or given alias in the source object
-							source[(action = cfg.setProperty || alias)] = value;
+							source[(action = cfg.setProperty || alias)] = values[0];
 							// flag success if value is now the same
-							return source[action] === value;
+							return source[action] === values[0];
 						}
 					} else { // otherwise, when getting...
 						// if a function, return result of executing the function within the scope of the proxied object
