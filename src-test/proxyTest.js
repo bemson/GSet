@@ -62,7 +62,7 @@ ProxyTest.prototype = {
 		assertTrue('charter c get & sets', chrt.c === 0);
 		assertTrue('charter d get & sets', chrt.d === 0);
 		for (; i; i--) {
-			assertTrue('charter is missing n' + i, !chrt.hasOwnProperty('n' + i));
+			assertTrue('charter is missing n' + i, chrt['n' + i] == null);
 		}
 		assertSame('static number',123,pxy.a());
 		assertArray('returns array',pxy.b());
@@ -104,8 +104,8 @@ ProxyTest.prototype = {
 		assertTrue('charter b gets',chrt.b === 1);
 		assertTrue('charter e gets',chrt.e === 1);
 		assertTrue('charter f gets',chrt.f === 1);
-		assertTrue('charter c missing',!chrt.hasOwnProperty('c'));
-		assertTrue('charter d missing',!chrt.hasOwnProperty('d'));
+		assertTrue('charter c missing',chrt.c == null);
+		assertTrue('charter d missing',chrt.d == null);
 		assertSame('a gets',src.foo,pxy.a());
 		assertSame('b gets',src.foo,pxy.b());
 		pxy.e();
@@ -135,7 +135,7 @@ ProxyTest.prototype = {
 			chrt = pxy._gset();
 
 		assertTrue('a, b, and c set', chrt.a === 0 && chrt.b === 0);
-		assertTrue('e0 and e1 are missing', !chrt.hasOwnProperty('e0') && !chrt.hasOwnProperty('e1'));
+		assertTrue('e0 and e1 are missing', !chrt.e0 && !chrt.e1);
 		assertTrue('a is function',typeof pxy.a === 'function');
 		assertTrue('takes string', pxy.a(str));
 		assertTrue('takes object', pxy.b(obj));
@@ -180,5 +180,30 @@ ProxyTest.prototype = {
 		assertException('getting fails',function () {
 			pxy.b();
 		});
+	},
+	testFeatures: function () {
+		var src1 = {foo:'bar'},
+			src2 = {foo:'world'},
+			sig1 = {},
+			sig2 = {},
+			pxy1 = new Proxy(src1,
+			{
+					foo: [],
+					a: ['a'],
+					b: [0,0,'b']
+			},sig1),
+			chrt1 = pxy1._gset(),
+			pxy2, chrt2;
+		assertTrue('removed "a" from charter 1',delete chrt1.a);
+		assertTrue('charter is cloned',pxy1._gset().a != null);
+		chrt1 = pxy1._gset();
+		assertNoException('proxy used as scheme', function () {
+			pxy2 = new Proxy(src2,pxy1,sig2);
+			chrt2 = pxy2._gset();
+		});
+		assertSame('sig1 unlocks pxy1',pxy1._gset(sig1),src1);
+		assertSame('sig2 unlocks pxy2',pxy2._gset(sig2),src2);
+		assertSame('scheme is cloned',chrt1.foo === 0 && chrt1.a === 1 && chrt1.b === -1, chrt2.foo === 0 && chrt2.a === 1 && chrt2.b === -1)
+		assertNotSame('pxy1 and pxy2 have different foo values',pxy1.foo(), pxy2.foo());
 	}
 };
