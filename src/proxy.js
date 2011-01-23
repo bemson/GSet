@@ -14,9 +14,11 @@
 					return pxy._gset.apply(pxy, [prop].concat(arguments.length ? [].slice.call(arguments) : []));
 				}
 			},
-			customCall: function (source, scheme, key) { // function to call custom method
+			customCall: function (source, scheme, key, pxy) { // function to call custom method
+				var gvsArgs = [pxy, key, ''];
 				return function () {
-					return scheme[key].apply(source, arguments)
+					var customArgs = arguments;
+					return (function () {return scheme[key].apply(source, customArgs)}).apply(pxy, gvsArgs)
 				}
 			},
 			typeMap: { // collection of allowed types
@@ -83,7 +85,7 @@
 				// if the code is 2...
 				if (members[key] === 2) {
 					// add scoped method to instance
-					pxy[key] = sys.customCall(source, scheme, key);
+					pxy[key] = sys.customCall(source, scheme, key, pxy);
 				} else { // otherwise, when a gset definition...
 					// create getter/setter call to gset for this key
 					pxy[key] = sys.gsetCall(pxy, key);
@@ -101,7 +103,7 @@
 				// if this is a function...
 				if (kind === 'f') {
 					// add scoped method to instance
-					pxy[key] = sys.customCall(source, scheme, key);
+					pxy[key] = sys.customCall(source, scheme, key, pxy);
 					// add member name and use custom code
 					members[key] = 2;
 				} else { // otherwise, when not a function...
@@ -185,10 +187,10 @@
 		pxy._gset = function (alias) {
 			// init vars
 			var args = [].slice.call(arguments), // alias arguments
-				values = args.slice(1), // capture value in arguments (if any)
+				values = args.slice(1), // capture values (if any)
 				isSet = values.length, // flag when attempting to set a property
 				action = isSet ? 'set' : 'get', // indicates when setting the target property
-				setArgs = [values, alias, isSet ? 'v' : 'g', pxy], // args to send functions
+				gvsArgs = [pxy, alias, isSet ? 'v' : 'g'], // args to send functions
 				cfg = cfgs[alias], // alias the config for the requested property
 				codeConst = function () {}; // constructor to clone codes
 
@@ -214,11 +216,11 @@
 					// if setting...
 					if (isSet) {
 						// if no validation is needed or the value validates...
-						if (cfg.validAny || ((cfg.validator && cfg.validator.apply(source, setArgs)) || sys.testValueTypes(cfg.types, values))) {
+						if (cfg.validAny || ((cfg.validator && (function () {return cfg.validator.apply(source, values)}).apply(pxy, gvsArgs)) || sys.testValueTypes(cfg.types, values))) {
 							// if there is a setter, or no setProperty and a getter function (setter has precedence)...
-							if ((cfg.setter || (!cfg.setProperty && cfg.getter)) && setArgs.splice(2,1,'s')) {
+							if ((cfg.setter || (!cfg.setProperty && cfg.getter)) && gvsArgs.splice(2,1,'s')) {
 								// capture result of setter/getter function
-								action = (cfg.setter || cfg.getter).apply(source, setArgs);
+								action = (function () {return (cfg.setter || cfg.getter).apply(source, values)}).apply(pxy, gvsArgs);
 								// return true by default, otherwise return the return value, or it's boolean equivalent when setting
 								return (action === undefined) ? !0 : (isSet ? !!action : action);
 							}
@@ -229,7 +231,7 @@
 						}
 					} else { // otherwise, when getting...
 						// if a function, return result of executing the function within the scope of the proxied object
-						if (cfg.getter) return cfg.getter.apply(source, setArgs);
+						if (cfg.getter) return (function () {return cfg.getter.apply(source, values)}).apply(pxy, gvsArgs);
 						// (otherwise) return value of property (or given alias) in source object
 						return source[cfg.getProperty || alias];
 					}

@@ -1,14 +1,24 @@
-var gvsFnc = function (values, key, phase, proxy) {
-	assertArray('values is array', values);
-	assertSame('arguments count', 4, arguments.length);
+var gvsFnc = function () {
+	var values = arguments,
+		pxyArgs = arguments.callee.caller.arguments,
+		key = pxyArgs[1],
+		phase = pxyArgs[2],
+		proxy = pxyArgs[0];
+	assertSame('arguments count', 3, pxyArgs.length);
 	assertString('key is string', key);
 	assertString('phase is string', phase);
-	assertSame('phase is lowercased', phase.toLowerCase(), phase);
-	assertInstanceOf('proxy is instance', Proxy, proxy);
-	if (phase === 'g') {
-		assertTrue('values is an empty array',!values.length);
+	if (phase === '') {
+		assertSame('phase is an empty string',phase,'');
 	} else {
-		assertTrue('values is populated',!!values.length);
+		assertSame('phase is lowercased', phase.toLowerCase(), phase);
+		assertTrue('phase is valid', /^[gvs]$/.test(phase));
+		assertInstanceOf('proxy is instance', Proxy, proxy);
+		assertFunction('proxy._gset is valid', proxy._gset);
+		if (phase === 'g') {
+			assertTrue('values is empty',!values.length);
+		} else {
+			assertTrue('values is populated',!!values.length);
+		}
 	}
 	return 1;
 };
@@ -93,7 +103,10 @@ ProxyTest.prototype = {
 					c: [1],
 					d: [function () {}],
 					e: [gvsFnc],
-					f: [function (v,k,p) {
+					f: [function () {
+						var pxyArgs = arguments.callee.caller.arguments,
+							k = pxyArgs[1],
+							p = pxyArgs[2];
 						assertSame('phase is "g"',p,'g');
 						assertSame('key is "f"',k,'f');
 						return 1;
@@ -147,7 +160,7 @@ ProxyTest.prototype = {
 	testSetters: function () {
 		var src = {foo:'bar'},
 		  fnc = function (v) {
-				this.foo = v[0];
+				this.foo = v;
 			},
 			i = 0,
 			key = 'foo',
@@ -161,7 +174,11 @@ ProxyTest.prototype = {
 				a6: [1,0,key],
 				a7: [1,1,key],
 				b: [0,0,gvsFnc],
-				c: [0,0,function (v,k,p) {
+				c: [0,0,function () {
+					var v = arguments,
+						pxyArgs = arguments.callee.caller.arguments,
+						k = pxyArgs[1],
+						p = pxyArgs[2];
 					assertSame('phase is "s"',p,'s');
 					assertSame('key is "c"',k,'c');
 					assertSame('2 values present',2,v.length);
@@ -175,11 +192,35 @@ ProxyTest.prototype = {
 		}
 		assertTrue('charter b sets',chrt.b === -1);
 		assertTrue('charter c sets',chrt.b === -1);
-		pxy.b(1);
+		pxy.b('setting via B');
 		pxy.c('var1','var2');
 		assertException('getting fails',function () {
 			pxy.b();
 		});
+	},
+	testCustomMethods: function () {
+		var src = {},
+			pxy = new Proxy(src,
+				{
+					a: gvsFnc,
+					b: function (y,z) {
+						var args = arguments,
+							pxyArgs = args.callee.caller.arguments,
+							key = pxyArgs[1];
+						assertSame('key of custom is "b"',key,'b');
+						if (args.length) {
+							assertSame('param y is 5',y,5);
+							assertSame('param z is 10',z,10);
+						} else {
+							assertUndefined('param y is null',y);
+							assertUndefined('param z is null',z);
+						}
+					}
+				});
+		pxy.a();
+		pxy.a(1);
+		pxy.b();
+		pxy.b(5,10);
 	},
 	testFeatures: function () {
 		var src1 = {foo:'bar'},
