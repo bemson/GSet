@@ -137,13 +137,13 @@ ProxyTest.prototype = {
 				a: ['a','string'],
 				b: ['a',['object','number','function']],
 				c: ['a',gvsFnc],
-				d: ['a',function (v,k,p) {
-					assertSame('phase is "v"',p,'v');
-					assertSame('key is "d"',k,'d');
+				d: ['a',function () {
+					assertTrue('at least one argument', arguments.length > 0);
 					return 1;
 				}],
 				e0: [fnc,gvsFnc],
-				e1: [0,gvsFnc]
+				e1: [0,gvsFnc],
+				f: ['a',function () {return 0}]
 			}),
 			chrt = pxy._gset();
 
@@ -155,6 +155,9 @@ ProxyTest.prototype = {
 		assertTrue('takes number', pxy.b(num));
 		assertTrue('takes function', pxy.b(fnc));
 		assertTrue('takes number and function', pxy.b(num, fnc));
+		assertTrue('accepts all',pxy.d(1));
+		assertFalse('denies string',pxy.b(str));
+		assertFalse('denies all', pxy.f(str));
 
 	},
 	testSetters: function () {

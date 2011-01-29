@@ -1,4 +1,5 @@
 /**
+* Proxy v2.1.1
 * http://github.com/bemson/Proxy/
 *
 * Copyright 2010, Bemi Faison
@@ -216,7 +217,7 @@
 					// if setting...
 					if (isSet) {
 						// if no validation is needed or the value validates...
-						if (cfg.validAny || ((cfg.validator && (function () {return cfg.validator.apply(source, values)}).apply(pxy, gvsArgs)) || sys.testValueTypes(cfg.types, values))) {
+						if (cfg.validAny || (cfg.validator && (function () {return cfg.validator.apply(source, values)}).apply(pxy, gvsArgs)) || (cfg.types && sys.testValueTypes(cfg.types, values))) {
 							// if there is a setter, or no setProperty and a getter function (setter has precedence)...
 							if ((cfg.setter || (!cfg.setProperty && cfg.getter)) && gvsArgs.splice(2,1,'s')) {
 								// capture result of setter/getter function
