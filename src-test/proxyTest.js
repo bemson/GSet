@@ -1,20 +1,17 @@
-var gvsFnc = function () {
+var gvsFnc = function gvsFnc() {
 	var values = arguments,
-		pxyArgs = arguments.callee.caller.arguments,
-		key = pxyArgs[1],
-		phase = pxyArgs[2],
-		proxy = pxyArgs[0];
-	assertSame('arguments count', 3, pxyArgs.length);
-	assertString('key is string', key);
-	assertString('phase is string', phase);
-	if (phase === '') {
-		assertSame('phase is an empty string',phase,'');
+		env = Proxy.getContext(arguments);
+	assertObject('getContext output', env);
+	assertInstanceOf('proxy is instance', Proxy, env.proxy);
+	assertString('key is string', env.key);
+	assertString('phase is string', env.phase);
+	assertSame('phase is lowercased', env.phase.toLowerCase(), env.phase);
+	assertTrue('phase is valid', !env.phase.length || /^get|vet|set$/.test(env.phase));
+	assertFunction('proxy._gset is valid', env.proxy._gset);
+	if (env.phase === '') {
+		assertSame('phase is an empty string',env.phase,'');
 	} else {
-		assertSame('phase is lowercased', phase.toLowerCase(), phase);
-		assertTrue('phase is valid', /^[gvs]$/.test(phase));
-		assertInstanceOf('proxy is instance', Proxy, proxy);
-		assertFunction('proxy._gset is valid', proxy._gset);
-		if (phase === 'g') {
+		if (env.phase === 'get') {
 			assertTrue('values is empty',!values.length);
 		} else {
 			assertTrue('values is populated',!!values.length);
@@ -27,20 +24,57 @@ ProxyTest = TestCase('ProxyTest');
 
 ProxyTest.prototype = {
 	testPresence: function () {
-		assertNotNull('Proxy is available', Proxy);
+		assertNotNull('Proxy', Proxy);
+		assertFunction('getContext',Proxy.getContext);
 	},
 	testExceptions: function () {
-		assertException('No new', function () {
-			var x = Proxy();
+		var a = function () {
+				var p = this;
+				if (p instanceof arguments.callee) {
+					return !0;
+				} else {
+					return !1;
+				}
+			},
+			b = function () {
+				var p = this;
+				if (p instanceof b) {
+					return !0;
+				} else {
+					return !1;
+				}
+			},
+			c = function () {
+				var p = this;
+				if (!(p instanceof arguments.callee)) throw new Error('new operator missing');
+			};
+		assertTrue('local with new', !!(new a()));
+		assertFalse('local without new', !!(a()));
+		assertTrue('local with new', !!(new b()));
+		assertFalse('local without new', !!(b()));
+		assertNoException('local new c', function () {
+			new c();
 		});
-		assertException('No source', function () {
-			var x = new Proxy();
+		assertException('local no new',function () {
+			c();
 		});
-		assertException('Null source', function () {
-			var x = new Proxy(null);
+		assertException('Proxy without new', function () {
+			Proxy();
 		});
-		assertException('Undefined source', function () {
-			var x = new Proxy(undefined);
+		assertException('Proxy without source', function () {
+			new Proxy();
+		});
+		assertException('Proxy with Null', function () {
+			new Proxy(null);
+		});
+		assertException('Proxy without undefined source', function () {
+			new Proxy(undefined);
+		});
+		assertException('4 args and no gate functions', function () {
+			new Proxy({},{},{},{});
+		});
+		assertException('4 args and 2 gate functions', function () {
+			new Proxy({},{},function () {},function () {});
 		});
 	},
 	testImpliedMaps: function () {
@@ -107,7 +141,7 @@ ProxyTest.prototype = {
 						var pxyArgs = arguments.callee.caller.arguments,
 							k = pxyArgs[1],
 							p = pxyArgs[2];
-						assertSame('phase is "g"',p,'g');
+						assertSame('phase is "get"',p,'get');
 						assertSame('key is "f"',k,'f');
 						return 1;
 					}]
@@ -158,11 +192,11 @@ ProxyTest.prototype = {
 		assertTrue('accepts all',pxy.d(1));
 		assertFalse('denies string',pxy.b(str));
 		assertFalse('denies all', pxy.f(str));
-
 	},
 	testSetters: function () {
 		var src = {foo:'bar'},
 		  fnc = function (v) {
+				assertSame('source is valid',src,this);
 				this.foo = v;
 			},
 			i = 0,
@@ -182,7 +216,7 @@ ProxyTest.prototype = {
 						pxyArgs = arguments.callee.caller.arguments,
 						k = pxyArgs[1],
 						p = pxyArgs[2];
-					assertSame('phase is "s"',p,'s');
+					assertSame('phase is "set"',p,'set');
 					assertSame('key is "c"',k,'c');
 					assertSame('2 values present',2,v.length);
 				}]
@@ -194,12 +228,133 @@ ProxyTest.prototype = {
 			assertSame('a' + i + ' set worked', src.foo, i);
 		}
 		assertTrue('charter b sets',chrt.b === -1);
-		assertTrue('charter c sets',chrt.b === -1);
+		assertTrue('charter c sets',chrt.c === -1);
 		pxy.b('setting via B');
-		pxy.c('var1','var2');
+		assertTrue('c returns true',pxy.c('var1','var2'));
 		assertException('getting fails',function () {
 			pxy.b();
 		});
+	},
+	testExtraArgs: function () {
+		var pxy,
+			src = {foo:'bar'},
+			sig = {},
+			gateTests = function () {
+				pxy.a();
+				pxy.b();
+				pxy._gset();
+			},
+			sigTests = function () {
+				assertSame('sig gets src',src, pxy._gset(sig));
+			};
+		assertNoException('init gate', function () {
+			pxy = new Proxy(src,
+				{
+					a: function () {},
+					b: []
+				},
+				gvsFnc
+			);
+		});
+		gateTests();
+		assertNoException('init sig', function () {
+			pxy = new Proxy(src,{},sig);
+		});
+		sigTests();
+		assertNoException('init gate then sig', function () {
+			pxy = new Proxy(src,
+				{
+					a: function () {},
+					b: []
+				},
+				gvsFnc,
+				sig
+			);
+		});
+		gateTests();
+		sigTests();
+		assertNoException('init sig then gate', function () {
+			pxy = new Proxy(src,
+				{
+					a: function () {},
+					b: []
+				},
+				sig,
+				gvsFnc
+			);
+		});
+		gateTests();
+		sigTests();
+	},
+	testGate: function () {
+		var src = {a:'foo'},
+			flag = 0,
+			tally = 0,
+			pxy = new Proxy(src,
+				{
+					a: [],
+					b: function () {
+						return 1;
+					},
+					c: [
+						function () {
+							return 1;
+						},
+						function () {
+							return 1;
+						},
+						function (v) {
+							assertSame('v parameter',v,20);
+							return 1;
+						}
+					]
+				},
+				function () {
+					var env = Proxy.getContext(arguments);
+					assertObject('gate env',env);
+					assertInstanceOf('proxy',Proxy,env.proxy);
+					assertString('phase',env.phase);
+					assertString('key',env.key);
+					if (tally++ > 3) {
+						return !1;
+					}
+				}
+			),
+			pxy2 = new Proxy(src,pxy), // clones and gate
+			pxy3 = new Proxy(src, // clones scheme, overrides gate
+				pxy2,
+				function () {
+					var proxy = Proxy.getContext(arguments).proxy;
+					assertFalse('gset call within gate', proxy.a());
+					assertFalse('custom call within gate', proxy.b());
+					assertObject('charter call within gate', proxy._gset());
+					tally = 0;
+				}
+			);
+		assertString('gate open a',pxy.a());
+		assertNumber('gate open b',pxy.b());
+		assertNumber('gate open c',pxy.c());
+		assertTrue('gate open c',pxy.c(20));
+		assertSame('gate calls',4,tally);
+		assertFalse('gate closed a',pxy.a());
+		assertFalse('gate closed b',pxy.b());
+		assertFalse('gate closed c',pxy.c());
+		assertFalse('gate closed c',pxy.c(40));
+		assertObject('closed gate allows charter', pxy._gset());
+		assertFalse('pxy2 has same gate as pxy',pxy2.c());
+		pxy3.b();
+		assertSame('tally reset by other gate',0,tally);
+	},
+	testSig: function () {
+		var src = {},
+			sig1 = {},
+			sig2 = {},
+			pxy1 = new Proxy(src,{},sig1),
+			pxy2 = new Proxy(src,{},sig2),
+			pxy3 = new Proxy(src,pxy1);
+		assertNotSame('signatures',sig1,sig2);
+		assertSame('src retrieved',pxy1._gset(sig1),pxy2._gset(sig2));
+		assertSame('sig clones',pxy3._gset(sig1),pxy1._gset(sig1));
 	},
 	testCustomMethods: function () {
 		var src = {},
@@ -231,11 +386,13 @@ ProxyTest.prototype = {
 			sig1 = {},
 			sig2 = {},
 			pxy1 = new Proxy(src1,
-			{
-					foo: [],
-					a: ['a'],
-					b: [0,0,'b']
-			},sig1),
+				{
+						foo: [],
+						a: ['a'],
+						b: [0,0,'b']
+				},
+				sig1
+			),
 			chrt1 = pxy1._gset(),
 			pxy2, chrt2;
 		assertTrue('removed "a" from charter 1',delete chrt1.a);
