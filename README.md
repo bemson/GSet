@@ -1,8 +1,8 @@
 # Proxy
 Share and use objects with ease.
 
-2/4/11
-version 2.2.0
+2/6/11
+version 2.2.1
 by Bemi Faison (bemson@gmail.com)
 
 ## DESCRIPTION

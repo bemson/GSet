@@ -3,7 +3,7 @@ var gvsFnc = function gvsFnc() {
 		env = Proxy.getContext(arguments);
 	assertObject('getContext output', env);
 	assertInstanceOf('proxy is instance', Proxy, env.proxy);
-	assertString('key is string', env.key);
+	assertString('alias is string', env.alias);
 	assertString('phase is string', env.phase);
 	assertSame('phase is lowercased', env.phase.toLowerCase(), env.phase);
 	assertTrue('phase is valid', !env.phase.length || /^get|vet|set$/.test(env.phase));
@@ -25,7 +25,7 @@ ProxyTest = TestCase('ProxyTest');
 ProxyTest.prototype = {
 	testPresence: function () {
 		assertNotNull('Proxy', Proxy);
-		assertFunction('getContext',Proxy.getContext);
+		assertFunction('getContext', Proxy.getContext);
 	},
 	testExceptions: function () {
 		var a = function () {
@@ -314,20 +314,22 @@ ProxyTest.prototype = {
 					assertObject('gate env',env);
 					assertInstanceOf('proxy',Proxy,env.proxy);
 					assertString('phase',env.phase);
-					assertString('key',env.key);
+					assertString('key',env.alias);
 					if (tally++ > 3) {
 						return !1;
 					}
 				}
 			),
-			pxy2 = new Proxy(src,pxy), // clones and gate
+			pxy2 = new Proxy(src, pxy), // clones and gate
 			pxy3 = new Proxy(src, // clones scheme, overrides gate
 				pxy2,
 				function () {
-					var proxy = Proxy.getContext(arguments).proxy;
-					assertFalse('gset call within gate', proxy.a());
-					assertFalse('custom call within gate', proxy.b());
-					assertObject('charter call within gate', proxy._gset());
+					var ctx = Proxy.getContext(arguments);
+					assertObject('charter call', ctx.proxy._gset());
+					assertFalse('gate can call own alias', ctx.proxy[ctx.alias]());
+					if (ctx.alias !== 'b') {
+						assertTrue('gate can call alias b', !!ctx.proxy.b());
+					}
 					tally = 0;
 				}
 			);
@@ -342,7 +344,8 @@ ProxyTest.prototype = {
 		assertFalse('gate closed c',pxy.c(40));
 		assertObject('closed gate allows charter', pxy._gset());
 		assertFalse('pxy2 has same gate as pxy',pxy2.c());
-		pxy3.b();
+		pxy3.a();
+		pxy3.c();
 		assertSame('tally reset by other gate',0,tally);
 	},
 	testSig: function () {

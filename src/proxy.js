@@ -1,5 +1,5 @@
 /**
-* Proxy v2.2.0
+* Proxy v2.2.1
 * http://github.com/bemson/Proxy/
 *
 * Copyright 2010, Bemi Faison
@@ -21,13 +21,13 @@
 					return pxy._gset.apply(pxy, [prop].concat(arguments.length ? [].slice.call(arguments) : []));
 				}
 			},
-			customCall: function (source, scheme, key, pxy, gateCheck) { // function to call custom method
-				var gvsArgs = [pxy, key, ''];
+			customCall: function (source, scheme, alias, pxy, gateCheck) { // function to call custom method
+				var gvsArgs = [pxy, alias, ''];
 				return function () {
 					var srcArgs = arguments;
 					// if gateCheck returns false, return false
 					if (!gateCheck(srcArgs,gvsArgs)) return !1;
-					return sys.gvsCall(scheme[key], source, srcArgs, pxy, gvsArgs);
+					return sys.gvsCall(scheme[alias], source, srcArgs, pxy, gvsArgs);
 				}
 			},
 			typeMap: { // collection of allowed types
@@ -80,18 +80,19 @@
 			members, // capture member names and code
 			sig = sys.r_fnc, // default signature - to retrieve the source from this Proxy instance
 			gate = sys.getType, // default gate function
-			locked, // flags when gate is locked
+			locks = {}, // lock flags for each alias
 			gateCheck = function (scopeArgs, gvsArgs) { // manages access to proxy methods
 				// init vars
-				var access = !locked; // use last access
+				var alias = gvsArgs[1], // get alias being check
+					access = !locks[alias]; // use last access value
 				// if access is allowed and there is a gate function...
 				if (access && gate) {
-					// lock gate - prevents Proxy calls from within the gate
-					locked = 1;
+					// lock gate - prevents Proxy calls to this alias from within the gate
+					locks[alias] = 1;
 					// if the gate declines access, deny access
-					if (sys.gvsCall(gate, source, scopeArgs, pxy, gvsArgs) === false) access = 0;
+					if (sys.gvsCall(gate, source, scopeArgs, pxy, gvsArgs) === !1) access = 0;
 					// unlock gate
-					locked = 0;
+					locks[alias] = 0;
 				}
 				// allow access
 				return access;
@@ -140,13 +141,18 @@
 			scheme = scheme[4];
 			// with each member...
 			for (key in members) {
-				// if the code is 2...
-				if (members[key] === 2) {
-					// add scoped method to instance
-					pxy[key] = sys.customCall(source, scheme, key, pxy, gateCheck);
-				} else { // otherwise, when a gset definition...
-					// create getter/setter call to gset for this key
-					pxy[key] = sys.gsetCall(pxy, key);
+				// if not inherited...
+				if (members.hasOwnProperty(key)) {
+					// init lock flag for this alias
+					locks[key] = 0;
+					// if the code is 2...
+					if (members[key] === 2) {
+						// add scoped method to instance
+						pxy[key] = sys.customCall(source, scheme, key, pxy, gateCheck);
+					} else { // otherwise, when a gset definition...
+						// create getter/setter call to gset for this key
+						pxy[key] = sys.gsetCall(pxy, key);
+					}
 				}
 			}
 		} else { // otherwise, when the scheme is not a proxy...
@@ -157,6 +163,8 @@
 			for (key in scheme) {
 				// skip inherited properties
 				if (!scheme.hasOwnProperty(key)) continue;
+				// init lock flag for this alias
+				locks[key] = 0;
 				// capture property-map
 				pm = scheme[key];
 				// capture type of map
@@ -328,14 +336,14 @@
 		var ctx = {
 				proxy: !1,
 				phase: !1,
-				key: !1
+				alias: !1
 			},
 			isType = function (obj,oStr) {
 				return typeof obj === (oStr ? 'object' : 'function');
 			};
 		if (isType(args,1) && isType((args = args.callee)) && isType((args = args.caller)) && isType((args = args.arguments),1) && args.length === 3) {
 			ctx.proxy = args[0];
-			ctx.key = args[1];
+			ctx.alias = args[1];
 			ctx.phase = args[2];
 		}
 		return ctx;
