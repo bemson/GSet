@@ -85,28 +85,38 @@ ProxyTest.prototype = {
 				b: [[1,2,3]],
 				c: [],
 				d: [],
+				g1:[1],
+				v1:[0,1],
+				v2:[1,1],
+				s1: [0,0,1],
+				s2: [1,0,1],
+				s3: [0,1,1],
+				s4: [1,1,1],
 				n1: [0],
-				n2: [1],
-				n3: [0,0],
-				n4: [1,0],
-				n5: [1,1],
-				n6: [0,1],
-				n7: [0,0,0],
-				n8: [1,0,0],
-				n9: [1,1,0],
-				n10: [1,1,1],
-				n11: [0,1,0],
-				n12: [0,1,1],
-				n13: [0,0,1],
-				n14: [1,0,1]
+				n2: [0,0],
+				n3: [0,0,0],
+				n4: [0,1,0]
 			}),
 			chrt = pxy._gset();
-		assertTrue('charter a gets', chrt.a === 1);
-		assertTrue('charter b gets', chrt.b === 1);
-		assertTrue('charter c get & sets', chrt.c === 0);
-		assertTrue('charter d get & sets', chrt.d === 0);
+		assertSame('charter a gets', 1, chrt.a);
+		assertSame('charter b gets', 1, chrt.b);
+		assertSame('charter c get & sets', 0, chrt.c);
+		assertSame('charter d get & sets', 0, chrt.d);
+		i = 1;
 		for (; i; i--) {
-			assertTrue('charter is missing n' + i, chrt['n' + i] == null);
+			assertSame('charter gets g' + i, 1, chrt['g' + i]);
+		}
+		i = 2;
+		for (; i; i--) {
+			assertTrue('charter vets v' + i, chrt['v' + i] < 1);
+		}
+		i = 4;
+		for (; i; i--) {
+			assertTrue('charter sets s' + i, chrt['s' + i] < 1);
+		}
+		i = 4;
+		for (; i; i--) {
+			assertUndefined('charter is missing for n' + i, chrt['n' + i]);
 		}
 		assertSame('static number',123,pxy.a());
 		assertArray('returns array',pxy.b());
@@ -134,7 +144,6 @@ ProxyTest.prototype = {
 						}
 					],
 					b: ['foo'],
-					c: [1],
 					d: [function () {}],
 					e: [gvsFnc],
 					f: [function () {
@@ -151,8 +160,7 @@ ProxyTest.prototype = {
 		assertTrue('charter b gets',chrt.b === 1);
 		assertTrue('charter e gets',chrt.e === 1);
 		assertTrue('charter f gets',chrt.f === 1);
-		assertTrue('charter c missing',chrt.c == null);
-		assertTrue('charter d missing',chrt.d == null);
+		assertTrue('charter d missing because no return function',chrt.d == null);
 		assertSame('a gets',src.foo,pxy.a());
 		assertSame('b gets',src.foo,pxy.b());
 		pxy.e();
@@ -172,17 +180,17 @@ ProxyTest.prototype = {
 				b: ['a',['object','number','function']],
 				c: ['a',gvsFnc],
 				d: ['a',function () {
-					assertTrue('at least one argument', arguments.length > 0);
-					return 1;
-				}],
-				e0: [fnc,gvsFnc],
-				e1: [0,gvsFnc],
+						assertTrue('at least one argument', arguments.length > 0);
+						return 1;
+					}
+				],
+				e: [fnc,fnc],
 				f: ['a',function () {return 0}]
 			}),
 			chrt = pxy._gset();
 
 		assertTrue('a, b, and c set', chrt.a === 0 && chrt.b === 0);
-		assertTrue('e0 and e1 are missing', !chrt.e0 && !chrt.e1);
+		assertTrue('e is missing because it uses non-returning functions', !chrt.e);
 		assertTrue('a is function',typeof pxy.a === 'function');
 		assertTrue('takes string', pxy.a(str));
 		assertTrue('takes object', pxy.b(obj));
@@ -204,12 +212,10 @@ ProxyTest.prototype = {
 			pxy = new Proxy(src, {
 				a0: [0,0,fnc],
 				a1: [0,1,fnc],
-				a2: [1,0,fnc],
-				a3: [1,1,fnc],
-				a4: [0,0,key],
-				a5: [0,1,key],
-				a6: [1,0,key],
-				a7: [1,1,key],
+				a2: [0,0,fnc],
+				a3: [0,0,key],
+				a4: [0,1,key],
+				a5: [0,0,key],
 				b: [0,0,gvsFnc],
 				c: [0,0,function () {
 					var v = arguments,
@@ -222,7 +228,7 @@ ProxyTest.prototype = {
 				}]
 			}),
 			chrt = pxy._gset();
-		for (; i < 7; i++) {
+		for (; i < 5; i++) {
 			assertTrue('charter for a' + i + ' sets', chrt['a' + i] === -1);
 			assertTrue('a' + i + ' set returns true',pxy['a' + i](i));
 			assertSame('a' + i + ' set worked', src.foo, i);
