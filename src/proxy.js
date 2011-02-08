@@ -1,5 +1,5 @@
 /**
-* Proxy v2.2.2
+* Proxy v2.2.3
 * http://github.com/bemson/Proxy/
 *
 * Copyright 2010, Bemi Faison
@@ -289,13 +289,12 @@
 			// if the alias is Proxy's key, return parts for cloning
 			if (alias === sys) return [cfgs, members, sig, gate, scheme];
 
-			// if the gateCheck fails, exit function
-			if (!gateCheck(values, gvsArgs)) return !1;
-
 			// if a config exist for the target property...
 			if (cfg) {
 				// if the target action is available...
 				if (cfg[action]) {
+					// if the gateCheck fails, exit function
+					if (!gateCheck(values, gvsArgs)) return !1;
 					// if fixed, return fixed value (clone arrays for protection)
 					if (cfg.fixed) return cfg.isAry ? cfg.fixedValue.concat() : cfg.fixedValue;
 					// if setting...
