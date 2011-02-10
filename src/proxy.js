@@ -1,5 +1,5 @@
 /**
-* Proxy v2.2.3
+* Proxy v2.2.4
 * http://github.com/bemson/Proxy/
 *
 * Copyright 2010, Bemi Faison
@@ -22,7 +22,7 @@
 				}
 			},
 			customCall: function (source, scheme, alias, pxy, gateCheck) { // function to call custom method
-				var gvsArgs = [pxy, alias, ''];
+				var gvsArgs = [pxy, alias, 'custom'];
 				return function () {
 					var srcArgs = arguments;
 					// if gateCheck returns false, return false
@@ -93,6 +93,8 @@
 				if (access && gate) {
 					// lock gate - prevents Proxy calls to this alias from within the gate
 					locks[alias] = 1;
+					// set action
+					gvsArgs[2] = 'gate';
 					// if the gate declines access, deny access
 					if (sys.gvsCall(gate, source, scopeArgs, pxy, gvsArgs) === !1) access = 0;
 					// unlock gate
@@ -273,11 +275,13 @@
 				isSet = values.length, // flag when attempting to set a property
 				action = isSet ? 'set' : 'get', // indicates when setting the target property
 				gvsArgs = [pxy, alias, isSet ? 'vet' : action], // args to send functions
-				cfg = cfgs[alias], // alias the config for the requested property
-				codeConst = function () {}; // constructor to clone codes
+				cfg = cfgs.hasOwnProperty(alias) && cfgs[alias], // get the config for the requested alias
+				codeConst; // stub constructor
 
 			// if no arguments were given...
 			if (!args.length) {
+				// define temporary constructor
+				codeConst = function () {};
 				// prototype members to constructor
 				codeConst.prototype = members;
 				// return copy of members
@@ -343,8 +347,8 @@
 	Proxy.getContext = function (args) {
 		var ctx = {
 				proxy: !1,
-				phase: !1,
-				alias: !1
+				alias: !1,
+				action: !1
 			},
 			isType = function (obj,oStr) {
 				return typeof obj === (oStr ? 'object' : 'function');
@@ -352,7 +356,7 @@
 		if (isType(args,1) && isType((args = args.callee)) && isType((args = args.caller)) && isType((args = args.arguments),1) && args.length === 3) {
 			ctx.proxy = args[0];
 			ctx.alias = args[1];
-			ctx.phase = args[2];
+			ctx.action = args[2];
 		}
 		return ctx;
 	};
