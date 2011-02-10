@@ -1,21 +1,23 @@
-var gvsFnc = function gvsFnc() {
+var r_action = /^(?:get|vet|set|gate|custom)$/,
+	gvsFnc = function gvsFnc() {
 	var values = arguments,
-		env = Proxy.getContext(arguments);
+		env = Proxy.getContext(arguments),
+		pxy, chrt;
 	assertObject('getContext output', env);
-	assertInstanceOf('proxy is instance', Proxy, env.proxy);
+	pxy = env.proxy;
+	assertInstanceOf('proxy is instance', Proxy, pxy);
 	assertString('alias is string', env.alias);
-	assertString('phase is string', env.phase);
-	assertSame('phase is lowercased', env.phase.toLowerCase(), env.phase);
-	assertTrue('phase is valid', !env.phase.length || /^get|vet|set$/.test(env.phase));
-	assertFunction('proxy._gset is valid', env.proxy._gset);
-	if (env.phase === '') {
-		assertSame('phase is an empty string',env.phase,'');
-	} else {
-		if (env.phase === 'get') {
-			assertTrue('values is empty',!values.length);
-		} else {
-			assertTrue('values is populated',!!values.length);
-		}
+	assertFunction('proxy._gset is valid', pxy._gset);
+	chrt = pxy._gset();
+	assertObject('charter is valid', chrt);
+	assertNumber('alias is valid', chrt[env.alias]);
+	assertString('action is string', env.action);
+	assertSame('action is lowercased', env.action.toLowerCase(), env.action);
+	assertTrue('action is valid', r_action.test(env.action));
+	if (env.action === 'get') {
+		assertTrue('values is empty',!values.length);
+	} else if (env.action === 'set') {
+		assertTrue('values is populated',!!values.length);
 	}
 	return 1;
 };
@@ -148,10 +150,10 @@ ProxyTest.prototype = {
 					e: [gvsFnc],
 					f: [function () {
 						var pxyArgs = arguments.callee.caller.arguments,
-							k = pxyArgs[1],
-							p = pxyArgs[2];
-						assertSame('phase is "get"',p,'get');
-						assertSame('key is "f"',k,'f');
+							alias = pxyArgs[1],
+							action = pxyArgs[2];
+						assertSame('action is "get"',action,'get');
+						assertSame('alias is "f"',alias,'f');
 						return 1;
 					}]
 				}),
@@ -220,10 +222,10 @@ ProxyTest.prototype = {
 				c: [0,0,function () {
 					var v = arguments,
 						pxyArgs = arguments.callee.caller.arguments,
-						k = pxyArgs[1],
-						p = pxyArgs[2];
-					assertSame('phase is "set"',p,'set');
-					assertSame('key is "c"',k,'c');
+						alias = pxyArgs[1],
+						action = pxyArgs[2];
+					assertSame('action is "set"',action,'set');
+					assertSame('alias is "c"',alias,'c');
 					assertSame('2 values present',2,v.length);
 				}]
 			}),
@@ -316,11 +318,18 @@ ProxyTest.prototype = {
 					]
 				},
 				function () {
-					var env = Proxy.getContext(arguments);
+					var env = Proxy.getContext(arguments),
+						envIdx = arguments.callee.caller.arguments;
 					assertObject('gate env',env);
 					assertInstanceOf('proxy',Proxy,env.proxy);
-					assertString('phase',env.phase);
-					assertString('key',env.alias);
+					assertString('action',env.action);
+					assertString('alias',env.alias);
+					assertSame('action is gate','gate',env.action);
+
+					assertInstanceOf('proxy',Proxy,envIdx[0]);
+					assertString('alias',envIdx[1]);
+					assertString('action',envIdx[2]);
+					assertSame('action is gate','gate',envIdx[2]);
 					if (tally++ > 3) {
 						return !1;
 					}
@@ -373,8 +382,8 @@ ProxyTest.prototype = {
 					b: function (y,z) {
 						var args = arguments,
 							pxyArgs = args.callee.caller.arguments,
-							key = pxyArgs[1];
-						assertSame('key of custom is "b"',key,'b');
+							alias = pxyArgs[1];
+						assertSame('alias of custom is "b"',alias,'b');
 						if (args.length) {
 							assertSame('param y is 5',y,5);
 							assertSame('param z is 10',z,10);
