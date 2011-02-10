@@ -1,8 +1,8 @@
 # Proxy
 Share and use objects with ease.
 
-2/8/11
-version 2.2.3
+2/10/11
+version 2.2.4
 by Bemi Faison (bemson@gmail.com)
 
 ## DESCRIPTION
@@ -46,7 +46,6 @@ Instantiate a Proxy using the `new` operator and the required arguments, _source
 
 Invoke Proxy methods like those of any other object.
 
-    pxy.myMethod();
     var getResult = pxy.gvsMethod();
     var setResult = pxy.gvsMethod(arg1, arg2, ...);
 
