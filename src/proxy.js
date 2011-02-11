@@ -1,5 +1,5 @@
 /**
-* Proxy v2.2.4
+* Proxy v2.2.5
 * http://github.com/bemson/Proxy/
 *
 * Copyright 2010, Bemi Faison
@@ -207,41 +207,44 @@
 						if (!pm.length) pm = scheme[key] = [key,1];
 						// capture types for get, vet and set indexes (if functions, get and vet must have return statements)
 						kind = [sys.getType(pm[0]), sys.getType(pm[1]), sys.getType(pm[2])];
-						// if get is truthy, not a function or this a function that returns a value...
-						if (pm[0] && kind[0] !== 'f' || sys.rxp.rtnFnc.test(pm[0] + '')) {
+						// if get or vet are functions that don't return values, skip this map
+						if ((kind[0] === 'f' && !sys.rxp.rtnFnc.test(pm[0] + '')) || (kind[1] === 'f' && !sys.rxp.rtnFnc.test(pm[1] + ''))) continue;
+						// if get is truthy...
+						if (pm[0]) {
 							// flag that this mapping gets
 							cfg.get = 1;
-							// if a function or string, define getter function or property based on kind
-							if (sys.rxp.fsType.test(kind[0])) cfg[kind[0] === 'f' ? 'getter' : 'getProperty'] = pm[0];
-						}
-						// if vet type is valid...
-						if (sys.rxp.afsType.test(kind[1]) && (kind[1] !== 'f' || sys.rxp.rtnFnc.test(pm[1] + ''))) {
-							// define validator as an array of types or a function, based on kind
-							cfg[kind[1] === 'f' ? 'validator' : 'types'] = kind[1] === 's' ? [pm[1]] : pm[1];
-						} else if (pm[1] && kind[1] !== 'f') { // or, when truthy and not a function...
-							// flag that any value is valid
-							cfg.validAny = 1;
+							// define as getter when a function - otherwise use the given string or key as the getProperty
+							cfg[kind[0] === 'f' ? 'getter' : 'getProperty'] = sys.rxp.fsType.test(kind[0]) ? pm[0] : key;
 						}
 						// if set is truthy...
 						if (pm[2]) {
-							// flag that this map gets
+							// flag that this map sets
 							cfg.set = 1;
-							// if set is a function or string...
+							// allow any value - for now
+							cfg.validAny = 1;
+							// if set is recognized...
 							if (sys.rxp.fsType.test(kind[2])) {
 								// define setter function or setProperty based on kind
 								cfg[kind[2] === 'f' ? 'setter' : 'setProperty'] = pm[2];
-							} else if (cfg.getter || cfg.getProperty) { // or, when there is a getter function or property...
+							} else if (cfg.get) { // or, if this config gets...
 								// use getter function or property for setting
 								cfg[cfg.getter ? 'setter' : 'setProperty'] = cfg.getter || cfg.getProperty;
 							}
-							// if there is no validator or types, set validany to 1
-							if (!cfg.validator || !cfg.types) cfg.validAny = 1;
-						} else if (pm.length < 3 && (cfg.validator || cfg.types || cfg.validAny)) { // or, when vetting is enabled..
-							// flag that this map gets
+						} else if (pm.length > 2) { // or, when there is a falsy set-index...
+							// flag that this map will not set
+							cfg.set = 0;
+						}
+						// if vet is truthy, and this map has no set-index or already allows settings...
+						if (pm[1] && (pm.length < 3 || cfg.set)) {
+							// flag that this map sets
 							cfg.set = 1;
+							// validate anything when vet-index is unrecognized
+							cfg.validAny = !sys.rxp.afsType.test(kind[1]);
+							// if not validating anything, specify validation method based on recognized type
+							if (!cfg.validAny) cfg[kind[1] === 'f' ? 'validator' : 'types'] = kind[1] === 's' ? [pm[1]] : pm[1];
 						}
 					}
-					// if this mapping gets or sets...
+					// if this map gets or sets...
 					if (cfg.get || cfg.set) {
 						// capture code for this config, based on get/set states
 						members[key] = cfg.get - cfg.set;
