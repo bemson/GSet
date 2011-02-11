@@ -1,26 +1,26 @@
 var r_action = /^(?:get|vet|set|gate|custom)$/,
 	gvsFnc = function gvsFnc() {
-	var values = arguments,
-		env = Proxy.getContext(arguments),
-		pxy, chrt;
-	assertObject('getContext output', env);
-	pxy = env.proxy;
-	assertInstanceOf('proxy is instance', Proxy, pxy);
-	assertString('alias is string', env.alias);
-	assertFunction('proxy._gset is valid', pxy._gset);
-	chrt = pxy._gset();
-	assertObject('charter is valid', chrt);
-	assertNumber('alias is valid', chrt[env.alias]);
-	assertString('action is string', env.action);
-	assertSame('action is lowercased', env.action.toLowerCase(), env.action);
-	assertTrue('action is valid', r_action.test(env.action));
-	if (env.action === 'get') {
-		assertTrue('values is empty',!values.length);
-	} else if (env.action === 'set') {
-		assertTrue('values is populated',!!values.length);
-	}
-	return 1;
-};
+		var values = arguments,
+			env = Proxy.getContext(arguments),
+			pxy, chrt;
+		assertObject('getContext output', env);
+		pxy = env.proxy;
+		assertInstanceOf('proxy is instance', Proxy, pxy);
+		assertString('alias is string', env.alias);
+		assertFunction('proxy._gset is valid', pxy._gset);
+		chrt = pxy._gset();
+		assertObject('charter is valid', chrt);
+		assertNumber('alias is valid', chrt[env.alias]);
+		assertString('action is string', env.action);
+		assertSame('action is lowercased', env.action.toLowerCase(), env.action);
+		assertTrue('action is valid', r_action.test(env.action));
+		if (env.action === 'get') {
+			assertTrue('values is empty',!values.length);
+		} else if (env.action === 'set') {
+			assertTrue('values is populated',!!values.length);
+		}
+		return 1;
+	};
 
 ProxyTest = TestCase('ProxyTest');
 
@@ -87,6 +87,7 @@ ProxyTest.prototype = {
 				b: [[1,2,3]],
 				c: [],
 				d: [],
+				e: src,
 				g1:[1],
 				v1:[0,1],
 				v2:[1,1],
@@ -104,6 +105,7 @@ ProxyTest.prototype = {
 		assertSame('charter b gets', 1, chrt.b);
 		assertSame('charter c get & sets', 0, chrt.c);
 		assertSame('charter d get & sets', 0, chrt.d);
+		assertSame('charter e get', 1, chrt.e);
 		i = 1;
 		for (; i; i--) {
 			assertSame('charter gets g' + i, 1, chrt['g' + i]);
@@ -135,6 +137,7 @@ ProxyTest.prototype = {
 		assertSame('fake full gets',10, pxy.d());
 		src.d = 20;
 		assertSame('fake connected to src', 20, pxy.d());
+		assertSame('e gets source', src, pxy.e());
 	},
 	testGetters: function () {
 		var src = {foo: 'bar'},
@@ -187,21 +190,23 @@ ProxyTest.prototype = {
 					}
 				],
 				e: [fnc,fnc],
-				f: ['a',function () {return 0}]
+				f: ['a',function () {return 0}],
+				g: [1,function () {return 0}]
 			}),
 			chrt = pxy._gset();
 
 		assertTrue('a, b, and c set', chrt.a === 0 && chrt.b === 0);
 		assertTrue('e is missing because it uses non-returning functions', !chrt.e);
 		assertTrue('a is function',typeof pxy.a === 'function');
-		assertTrue('takes string', pxy.a(str));
-		assertTrue('takes object', pxy.b(obj));
-		assertTrue('takes number', pxy.b(num));
-		assertTrue('takes function', pxy.b(fnc));
+		assertTrue('b takes string', pxy.a(str));
+		assertTrue('b takes object', pxy.b(obj));
+		assertTrue('b takes number', pxy.b(num));
+		assertTrue('b takes function', pxy.b(fnc));
 		assertTrue('takes number and function', pxy.b(num, fnc));
 		assertTrue('accepts all',pxy.d(1));
 		assertFalse('denies string',pxy.b(str));
-		assertFalse('denies all', pxy.f(str));
+		assertFalse('f denies all', pxy.f(str));
+		assertFalse('g denies all', pxy.f(str));
 	},
 	testSetters: function () {
 		var src = {foo:'bar'},
