@@ -1,4 +1,4 @@
-var r_action = /^(?:get|vet|set|gate|custom)$/,
+var r_action = /^(?:get|vet|set|custom)$/,
 	gvsFnc = function gvsFnc() {
 		var values = arguments,
 			env = Proxy.getContext(arguments),
@@ -252,6 +252,7 @@ ProxyTest.prototype = {
 		var pxy,
 			src = {foo:'bar'},
 			sig = {},
+			gateFnc = function () {},
 			gateTests = function () {
 				pxy.a();
 				pxy.b();
@@ -266,7 +267,7 @@ ProxyTest.prototype = {
 					a: function () {},
 					b: []
 				},
-				gvsFnc
+				gateFnc
 			);
 		});
 		gateTests();
@@ -280,7 +281,7 @@ ProxyTest.prototype = {
 					a: function () {},
 					b: []
 				},
-				gvsFnc,
+				gateFnc,
 				sig
 			);
 		});
@@ -293,7 +294,7 @@ ProxyTest.prototype = {
 					b: []
 				},
 				sig,
-				gvsFnc
+				gateFnc
 			);
 		});
 		gateTests();

@@ -2,7 +2,7 @@
 Share and use objects with ease.
 
 2/11/11
-version 2.2.5
+version 2.2.6
 by Bemi Faison (bemson@gmail.com)
 
 ## DESCRIPTION
