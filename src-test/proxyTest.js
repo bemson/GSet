@@ -330,12 +330,10 @@ ProxyTest.prototype = {
 					assertInstanceOf('proxy',Proxy,env.proxy);
 					assertString('action',env.action);
 					assertString('alias',env.alias);
-					assertSame('action is gate','gate',env.action);
 
 					assertInstanceOf('proxy',Proxy,envIdx[0]);
 					assertString('alias',envIdx[1]);
 					assertString('action',envIdx[2]);
-					assertSame('action is gate','gate',envIdx[2]);
 					if (tally++ > 3) {
 						return !1;
 					}

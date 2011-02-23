@@ -1,5 +1,5 @@
 /**
-* Proxy v2.2.6
+* Proxy v2.2.7
 * http://github.com/bemson/Proxy/
 *
 * Copyright 2010, Bemi Faison
@@ -88,18 +88,13 @@
 			gateCheck = function (scopeArgs, gvsArgs) { // manages access to proxy methods
 				// init vars
 				var alias = gvsArgs[1], // get alias being check
-					access = !locks[alias], // use last access value
-					action = gvsArgs[2]; // get original action
+					access = !locks[alias]; // use last access value
 				// if access is allowed and there is a gate function...
 				if (access && gate) {
 					// lock gate - prevents Proxy calls to this alias from within the gate
 					locks[alias] = 1;
-					// override action
-					gvsArgs[2] = 'gate';
 					// if the gate declines access, deny access
 					if (sys.gvsCall(gate, source, scopeArgs, pxy, gvsArgs) === !1) access = 0;
-					// reset action
-					gvsArgs[2] = action;
 					// unlock gate
 					locks[alias] = 0;
 				}
