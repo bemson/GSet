@@ -1,11 +1,11 @@
-# Proxy Test Suite
-[Proxy](http://github.com/bemson/Proxy/) uses JsTestDriver as a test suite.
+# GSet Test Suite
+[GSet](http://github.com/bemson/GSet/) uses JsTestDriver as a test suite.
 
 ## FILES
 
 * JsTestDriver.jar - Java application
 * jsTestDriver.conf - Test configuration file
-* proxyTest.js - Test script to use with JsTestDriver
+* gsetTest.js - Test script to use with JsTestDriver
 * README.md - This readme file
 
 ## INSTALLATION
@@ -14,7 +14,7 @@ JsTestDriver requires a java console.
 
 See the [JsTestDriver](http://code.google.com/p/js-test-driver/) page for complete installation instructions.
 
-The file "jsTestDriver.conf" requires the [Proxy](http://github.com/bemson/Proxy/) source code be available in a "src" folder, within the parent directory.
+The file "jsTestDriver.conf" requires the [GSet](http://github.com/bemson/GSet/) source code be available in a "src" folder, within the parent directory.
 
 ## USAGE
 

@@ -1,31 +1,32 @@
-# Proxy
+# GSet
 Share and use objects with ease.
 
-2/22/11
-version 2.2.7
+3/19/11
+version 1.0.0
 by Bemi Faison (bemson@gmail.com)
 
 ## DESCRIPTION
 
-The Proxy instance represents a limited version (or "view") of another object, protecting that object and it's members from unwanted access and manipulation. The Proxy constructor introduces the [GVS pattern](http://learnings-bemson.blogspot.com/2010/09/learning-to-open-source-via-proxy.html), which offers a simple syntax for defining getter/setter-style methods.
+Formerly named Proxy, the GSet instance protects an object from unwanted access and manipulation, while providing a collection of scoped methods. The GSet constructor introduces the [GVS pattern](http://learnings-bemson.blogspot.com/2010/09/learning-to-open-source-via-proxy.html), which offers a simple syntax for defining getter/setter methods.
 
 ## FILES
 
-* src/ - Directory containing the Proxy source code
-* src-test/ - Test suite for Proxy
-* LICENSE - The legal terms and conditions by which Proxy may be used
+* gset-min.js - GSet library minified with the YUI Compressor version 2.4.2
+* src/ - Directory containing the GSet source code
+* src-test/ - Test suite for GSet
+* LICENSE - The legal terms and conditions under which GSet may be used
 * README.md - This readme file
 
 
 ## INSTALLATION
 
-Use Proxy within a web browser. Load the `src/proxy.js` file like any other external JavaScript library file.
+Use GSet within a web browser. Load the `src/GSet.js` file like any other external JavaScript library file.
 
 ## USAGE
 
-Instantiate a Proxy using the `new` operator and the required arguments, _source_ and _scheme_. Functions within the scheme execute within the scope of the source object.
+Instantiate a GSet using the `new` operator and the required arguments, _source_ and _scheme_. Functions within the scheme execute within the scope of the source object.
 
-    var pxy = new Proxy(anyObject, {
+    var pxy = new GSet(anyObject, {
       myMethod: function () {
         var thatObject = this;
         thatObject.privateMethod();
@@ -44,15 +45,15 @@ Instantiate a Proxy using the `new` operator and the required arguments, _source
       ]
     });
 
-Invoke Proxy methods like those of any other object.
+Invoke GSet methods like any other object.
 
     var getResult = pxy.gvsMethod();
     var setResult = pxy.gvsMethod(arg1, arg2, ...);
 
-More usage information is available in the [Proxy wiki](http://github.com/bemson/Proxy/wiki/).
+More usage information is available in the [GSet wiki](http://github.com/bemson/GSet/wiki/).
 
 ## LICENSE
 
-Proxy is available under the terms of the [MIT-License](http://en.wikipedia.org/wiki/MIT_License#License_terms).
+GSet is available under the terms of the [MIT-License](http://en.wikipedia.org/wiki/MIT_License#License_terms).
 
 Copyright 2010, Bemi Faison
