@@ -1,11 +1,10 @@
-/**
-* Proxy v2.2.7
-* http://github.com/bemson/Proxy/
-*
-* Copyright 2010, Bemi Faison
-* Licensed under terms of the MIT License
-**/
-
+/*
+ * GSet v1.0.0
+ * http://github.com/bemson/GSet/
+ *
+ * Copyright 2010, Bemi Faison
+ * Released under the MIT License
+ */
 (function () {
 	// init vars
 	var sys = {
@@ -18,7 +17,7 @@
 			gsetCall: function (pxy, prop) { // calls gset via a curried function
 				return function () {
 					// send target property and any arguments as the value(s)
-					return pxy._gset.apply(pxy, [prop].concat(arguments.length ? [].slice.call(arguments) : []));
+					return pxy._gset.apply(pxy, [prop].concat(arguments.length ? [].slice.call(arguments) : []))
 				}
 			},
 			customCall: function (source, scheme, alias, pxy, gateCheck) { // function to call custom method
@@ -26,8 +25,8 @@
 				return function () {
 					var srcArgs = arguments;
 					// if gateCheck returns false, return false
-					if (!gateCheck(srcArgs,gvsArgs)) return !1;
-					return sys.gvsCall(scheme[alias], source, srcArgs, pxy, gvsArgs);
+					if (!gateCheck(srcArgs,gvsArgs)) return !1
+					return sys.gvsCall(scheme[alias], source, srcArgs, pxy, gvsArgs)
 				}
 			},
 			typeMap: { // collection of allowed types
@@ -43,7 +42,7 @@
 			},
 			getType: function (o) { // resolve object type
 				var t = sys.typeMap[typeof o] || sys.typeMap[Object.prototype.toString.call(o)];
-				return t && (t !== 's' || t.length) ? t : 0;
+				return t && (t !== 's' || t.length) ? t : 0
 			},
 			testValueTypes: function (types, values) {
 				var i = 0, j = values.length, q, z = types.length,t,r = 1;
@@ -56,9 +55,9 @@
 							break
 						}
 					}
-					if (!r) break;
+					if (!r) break
 				}
-				return r;
+				return r
 			}
 		};
 
@@ -66,32 +65,32 @@
 	* Creates an instance with methods scoped to another object.
 	*
 	* @param {Object} source The object to use as a scope for mapped methods.
-	* @param {Object} scheme Collection of methods and property-maps, or a Proxy instance.
-	*				When a Proxy instance, it's scheme is used scheme.
+	* @param {Object} scheme Collection of methods and property-maps, or a GSet instance.
+	*				When a GSet instance, it's scheme is used scheme.
 	*				Functions become methods of the instance.
 	*				Property-maps are structured arrays that compile into GVS methods, managed by the _gset() method.
 	* @param {Object} [signature]	A unique object reference, which can be used to retrieve the source from this instance.
-	*								If this parameter is not given and the scheme is a Proxy instance, it's signature is used.
+	*								If this parameter is not given and the scheme is a GSet instance, it's signature is used.
 	* @param {Function} [gate]	A function that can deny access to custom or GVS method, by returning false.
 	*							Gate functions receive false return values, when invoking other instance methods of the same instance - excluding retrieval of the charter.
-	*							If this parameter is not given and the scheme is a Proxy instance, it's gate is used.
+	*							If this parameter is not given and the scheme is a GSet instance, it's gate is used.
 	**/
-	Proxy = function (source, scheme) {
+	GSet = function (source, scheme) {
 		// init vars
 		var pxy = this, // alias self
 			args = arguments, // alias arguments
 			cfgs, // information about configurable properties
 			members, // capture member names and code
-			sig = sys.rxp.rtnFnc, // default signature - to retrieve the source from this Proxy instance
+			sig = sys.rxp.rtnFnc, // default signature - to retrieve the source from this GSet instance
 			gate = sys.getType, // default gate function
 			locks = {}, // lock flags for each alias
-			gateCheck = function (scopeArgs, gvsArgs) { // manages access to proxy methods
+			gateCheck = function (scopeArgs, gvsArgs) { // manages access to gset methods
 				// init vars
 				var alias = gvsArgs[1], // get alias being check
 					access = !locks[alias]; // use last access value
 				// if access is allowed and there is a gate function...
 				if (access && gate) {
-					// lock gate - prevents Proxy calls to this alias from within the gate
+					// lock gate - prevents GSet calls to this alias from within the gate
 					locks[alias] = 1;
 					// if the gate declines access, deny access
 					if (sys.gvsCall(gate, source, scopeArgs, pxy, gvsArgs) === !1) access = 0;
@@ -99,13 +98,13 @@
 					locks[alias] = 0;
 				}
 				// allow access
-				return access;
+				return access
 			},
 			pm, kind, key, cfg; // loop vars
 		// if not invoked with new, throw error
-		if (!(pxy.hasOwnProperty && pxy instanceof Proxy)) throw new Error('Proxy: missing new operator');
+		if (!(pxy.hasOwnProperty && pxy instanceof GSet)) throw new Error('GSet: missing new operator')
 		// if no source is given, throw error
-		if (source == null) throw new Error('Proxy: invalid source');
+		if (source == null) throw new Error('GSet: invalid source');
 		// if extra args exist...
 		if (args.length > 2) {
 			// if four args exist...
@@ -113,7 +112,7 @@
 				// capture arg types and test value (temporarily)
 				gate = [typeof args[2], typeof args[3], 'function'];
 				// if none or two functions are given, throw error
-				if ((gate[0] === gate[2]) === (gate[1] === gate[2])) throw new Error('Proxy: too many or too few gate functions');
+				if ((gate[0] === gate[2]) === (gate[1] === gate[2])) throw new Error('GSet: too many or too few gate functions')
 				// set sig to the argument that is not a function
 				sig = args[gate[0] === gate[2] ? 3 : 2];
 				// set gate to the argument that is a function
@@ -129,9 +128,9 @@
 				}
 			}
 		}
-		// if the scheme is a proxy...
-		if (scheme instanceof Proxy) {
-			// get cfgs and members of existing proxy
+		// if the scheme is a gset...
+		if (scheme instanceof GSet) {
+			// get cfgs and members of existing gset
 			scheme = scheme._gset(sys);
 			// get cfgs
 			cfgs = scheme[0];
@@ -159,14 +158,14 @@
 					}
 				}
 			}
-		} else { // otherwise, when the scheme is not a proxy...
+		} else { // otherwise, when the scheme is not a gset...
 			// init cfg and member object collections
 			cfgs = {};
 			members = {};
 			// with each mapping...
 			for (key in scheme) {
 				// skip inherited properties
-				if (!scheme.hasOwnProperty(key)) continue;
+				if (!scheme.hasOwnProperty(key)) continue
 				// init lock flag for this alias
 				locks[key] = 0;
 				// capture property-map
@@ -239,7 +238,7 @@
 							// validate anything when vet-index is unrecognized
 							cfg.validAny = !sys.rxp.afsType.test(kind[1]);
 							// if not validating anything, specify validation method based on recognized type
-							if (!cfg.validAny) cfg[kind[1] === 'f' ? 'validator' : 'types'] = kind[1] === 's' ? [pm[1]] : pm[1];
+							if (!cfg.validAny) cfg[kind[1] === 'f' ? 'validator' : 'types'] = kind[1] === 's' ? [pm[1]] : pm[1]
 						}
 					}
 					// if this map gets or sets...
@@ -259,7 +258,7 @@
 		/**
 		* Get or set a property.
 		*
-		* @param {String} alias The proxy alias to set or get.
+		* @param {String} alias The gset alias to set or get.
 		* @param {Object} [value]	One or more values to use when setting.
 		*							GVS methods with custom vetter and/or setter functions, receive all values.
 		*							GVS methods with implied setters, only use the first value.
@@ -286,20 +285,20 @@
 				// prototype members to constructor
 				codeConst.prototype = members;
 				// return copy of members
-				return new codeConst();
+				return new codeConst()
 			}
 
-			// if the alias is this proxy's signature, return the source object
-			if (alias === sig) return source;
-			// if the alias is Proxy's key, return parts for cloning
-			if (alias === sys) return [cfgs, members, sig, gate, scheme];
+			// if the alias is this gset's signature, return the source object
+			if (alias === sig) return source
+			// if the alias is GSet's key, return parts for cloning
+			if (alias === sys) return [cfgs, members, sig, gate, scheme]
 
 			// if a config exist for the target property...
 			if (cfg) {
 				// if the target action is available...
 				if (cfg[action]) {
 					// if the gateCheck fails, exit function
-					if (!gateCheck(values, gvsArgs)) return !1;
+					if (!gateCheck(values, gvsArgs)) return !1
 					// if fixed, return fixed value (clone arrays for protection)
 					if (cfg.fixed) return cfg.isAry ? cfg.fixedValue.concat() : cfg.fixedValue;
 					// if setting...
@@ -311,43 +310,43 @@
 								// capture result of setter/getter function
 								action = sys.gvsCall(cfg.setter || cfg.getter, source, values, pxy, gvsArgs);
 								// return true by default, otherwise return the return value, or it's boolean equivalent when setting
-								return (action === undefined) ? !0 : (isSet ? !!action : action);
+								return (action === undefined) ? !0 : (isSet ? !!action : action)
 							}
 							// (otherwise) set the target property or given alias in the source object
 							source[(action = cfg.setProperty || alias)] = values[0];
 							// flag success if value is now the same
-							return source[action] === values[0];
+							return source[action] === values[0]
 						}
 					} else { // otherwise, when getting...
 						// if a function, return result of executing getter
-						if (cfg.getter) return sys.gvsCall(cfg.getter, source, values, pxy, gvsArgs);
+						if (cfg.getter) return sys.gvsCall(cfg.getter, source, values, pxy, gvsArgs)
 						// (otherwise) return value of property (or given alias) in source object
-						return source[cfg.getProperty || alias];
+						return source[cfg.getProperty || alias]
 					}
 				} else { // otherwise, when the action is not available...
 					// throw error for illegal action
-					throw new Error('Proxy: "' + alias + '" has no ' + action + 'ter');
+					throw new Error('GSet: "' + alias + '" has no ' + action + 'ter')
 				}
 			} else { // otherwise, when no config exist...
 				// throw error for unmapped alias
-				throw new Error('Proxy: "' + alias + '" is unmapped');
+				throw new Error('GSet: "' + alias + '" is unmapped')
 			}
 			// return false if any valid action fails (this would occur when a validation routine fails)
-			return !1;
+			return !1
 		};
 	}
 
 	/**
-	* Returns the invocation context for a Proxy managed function.
+	* Returns the invocation context for a GSet managed function.
 	*
 	* @static
 	* @param {Object} arg The argument object from the executing function
 	*
-	* @returns {Object} An object with three keys: proxy, phase, and key. 
+	* @returns {Object} An object with three keys: gset, phase, and key. 
 	**/
-	Proxy.getContext = function (args) {
+	GSet.getContext = function (args) {
 		var ctx = {
-				proxy: !1,
+				gset: !1,
 				alias: !1,
 				action: !1
 			},
@@ -355,10 +354,10 @@
 				return typeof obj === (oStr ? 'object' : 'function');
 			};
 		if (isType(args,1) && isType((args = args.callee)) && isType((args = args.caller)) && isType((args = args.arguments),1) && args.length === 3) {
-			ctx.proxy = args[0];
+			ctx.gset = args[0];
 			ctx.alias = args[1];
 			ctx.action = args[2];
 		}
-		return ctx;
+		return ctx
 	};
 })();
