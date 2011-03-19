@@ -1,13 +1,13 @@
 var r_action = /^(?:get|vet|set|custom)$/,
 	gvsFnc = function gvsFnc() {
 		var values = arguments,
-			env = GSet.getContext(arguments),
+			env = Proxy.getContext(arguments),
 			pxy, chrt;
 		assertObject('getContext output', env);
-		pxy = env.gset;
-		assertInstanceOf('gset is instance', GSet, pxy);
+		pxy = env.proxy;
+		assertInstanceOf('proxy is instance', Proxy, pxy);
 		assertString('alias is string', env.alias);
-		assertFunction('gset._gset is valid', pxy._gset);
+		assertFunction('proxy._gset is valid', pxy._gset);
 		chrt = pxy._gset();
 		assertObject('charter is valid', chrt);
 		assertNumber('alias is valid', chrt[env.alias]);
@@ -22,12 +22,12 @@ var r_action = /^(?:get|vet|set|custom)$/,
 		return 1;
 	};
 
-GSetTest = TestCase('GSetTest');
+ProxyTest = TestCase('ProxyTest');
 
-GSetTest.prototype = {
+ProxyTest.prototype = {
 	testPresence: function () {
-		assertNotNull('GSet', GSet);
-		assertFunction('getContext', GSet.getContext);
+		assertNotNull('Proxy', Proxy);
+		assertFunction('getContext', Proxy.getContext);
 	},
 	testExceptions: function () {
 		var a = function () {
@@ -60,29 +60,29 @@ GSetTest.prototype = {
 		assertException('local no new',function () {
 			c();
 		});
-		assertException('GSet without new', function () {
-			GSet();
+		assertException('Proxy without new', function () {
+			Proxy();
 		});
-		assertException('GSet without source', function () {
-			new GSet();
+		assertException('Proxy without source', function () {
+			new Proxy();
 		});
-		assertException('GSet with Null', function () {
-			new GSet(null);
+		assertException('Proxy with Null', function () {
+			new Proxy(null);
 		});
-		assertException('GSet without undefined source', function () {
-			new GSet(undefined);
+		assertException('Proxy without undefined source', function () {
+			new Proxy(undefined);
 		});
 		assertException('4 args and no gate functions', function () {
-			new GSet({},{},{},{});
+			new Proxy({},{},{},{});
 		});
 		assertException('4 args and 2 gate functions', function () {
-			new GSet({},{},function () {},function () {});
+			new Proxy({},{},function () {},function () {});
 		});
 	},
 	testImpliedMaps: function () {
 		var src = {c:10},
 			i = 14,
-			pxy = new GSet(src, {
+			pxy = new Proxy(src, {
 				a: 123,
 				b: [[1,2,3]],
 				c: [],
@@ -141,7 +141,7 @@ GSetTest.prototype = {
 	},
 	testGetters: function () {
 		var src = {foo: 'bar'},
-			pxy = new GSet(src,
+			pxy = new Proxy(src,
 				{
 					a: [
 						function () {
@@ -180,7 +180,7 @@ GSetTest.prototype = {
 			fnc = function () {},
 			obj = {},
 			num = 2,
-			pxy = new GSet(src, {
+			pxy = new Proxy(src, {
 				a: ['a','string'],
 				b: ['a',['object','number','function']],
 				c: ['a',gvsFnc],
@@ -216,7 +216,7 @@ GSetTest.prototype = {
 			},
 			i = 0,
 			key = 'foo',
-			pxy = new GSet(src, {
+			pxy = new Proxy(src, {
 				a0: [0,0,fnc],
 				a1: [0,1,fnc],
 				a2: [0,0,fnc],
@@ -262,7 +262,7 @@ GSetTest.prototype = {
 				assertSame('sig gets src',src, pxy._gset(sig));
 			};
 		assertNoException('init gate', function () {
-			pxy = new GSet(src,
+			pxy = new Proxy(src,
 				{
 					a: function () {},
 					b: []
@@ -272,11 +272,11 @@ GSetTest.prototype = {
 		});
 		gateTests();
 		assertNoException('init sig', function () {
-			pxy = new GSet(src,{},sig);
+			pxy = new Proxy(src,{},sig);
 		});
 		sigTests();
 		assertNoException('init gate then sig', function () {
-			pxy = new GSet(src,
+			pxy = new Proxy(src,
 				{
 					a: function () {},
 					b: []
@@ -288,7 +288,7 @@ GSetTest.prototype = {
 		gateTests();
 		sigTests();
 		assertNoException('init sig then gate', function () {
-			pxy = new GSet(src,
+			pxy = new Proxy(src,
 				{
 					a: function () {},
 					b: []
@@ -304,7 +304,7 @@ GSetTest.prototype = {
 		var src = {a:'foo'},
 			flag = 0,
 			tally = 0,
-			pxy = new GSet(src,
+			pxy = new Proxy(src,
 				{
 					a: [],
 					b: function () {
@@ -324,14 +324,14 @@ GSetTest.prototype = {
 					]
 				},
 				function () {
-					var env = GSet.getContext(arguments),
+					var env = Proxy.getContext(arguments),
 						envIdx = arguments.callee.caller.arguments;
 					assertObject('gate env',env);
-					assertInstanceOf('gset',GSet,env.gset);
+					assertInstanceOf('proxy',Proxy,env.proxy);
 					assertString('action',env.action);
 					assertString('alias',env.alias);
 
-					assertInstanceOf('gset',GSet,envIdx[0]);
+					assertInstanceOf('proxy',Proxy,envIdx[0]);
 					assertString('alias',envIdx[1]);
 					assertString('action',envIdx[2]);
 					if (tally++ > 3) {
@@ -339,15 +339,15 @@ GSetTest.prototype = {
 					}
 				}
 			),
-			pxy2 = new GSet(src, pxy), // clones and gate
-			pxy3 = new GSet(src, // clones scheme, overrides gate
+			pxy2 = new Proxy(src, pxy), // clones and gate
+			pxy3 = new Proxy(src, // clones scheme, overrides gate
 				pxy2,
 				function () {
-					var ctx = GSet.getContext(arguments);
-					assertObject('charter call', ctx.gset._gset());
-					assertFalse('gate can call own alias', ctx.gset[ctx.alias]());
+					var ctx = Proxy.getContext(arguments);
+					assertObject('charter call', ctx.proxy._gset());
+					assertFalse('gate can call own alias', ctx.proxy[ctx.alias]());
 					if (ctx.alias !== 'b') {
-						assertTrue('gate can call alias b', !!ctx.gset.b());
+						assertTrue('gate can call alias b', !!ctx.proxy.b());
 					}
 					tally = 0;
 				}
@@ -371,16 +371,16 @@ GSetTest.prototype = {
 		var src = {},
 			sig1 = {},
 			sig2 = {},
-			pxy1 = new GSet(src,{},sig1),
-			pxy2 = new GSet(src,{},sig2),
-			pxy3 = new GSet(src,pxy1);
+			pxy1 = new Proxy(src,{},sig1),
+			pxy2 = new Proxy(src,{},sig2),
+			pxy3 = new Proxy(src,pxy1);
 		assertNotSame('signatures',sig1,sig2);
 		assertSame('src retrieved',pxy1._gset(sig1),pxy2._gset(sig2));
 		assertSame('sig clones',pxy3._gset(sig1),pxy1._gset(sig1));
 	},
 	testCustomMethods: function () {
 		var src = {},
-			pxy = new GSet(src,
+			pxy = new Proxy(src,
 				{
 					a: gvsFnc,
 					b: function (y,z) {
@@ -407,7 +407,7 @@ GSetTest.prototype = {
 			src2 = {foo:'world'},
 			sig1 = {},
 			sig2 = {},
-			pxy1 = new GSet(src1,
+			pxy1 = new Proxy(src1,
 				{
 						foo: [],
 						a: ['a'],
@@ -420,8 +420,8 @@ GSetTest.prototype = {
 		assertTrue('removed "a" from charter 1',delete chrt1.a);
 		assertTrue('charter is cloned',pxy1._gset().a != null);
 		chrt1 = pxy1._gset();
-		assertNoException('gset used as scheme', function () {
-			pxy2 = new GSet(src2,pxy1,sig2);
+		assertNoException('proxy used as scheme', function () {
+			pxy2 = new Proxy(src2,pxy1,sig2);
 			chrt2 = pxy2._gset();
 		});
 		assertSame('sig1 unlocks pxy1',pxy1._gset(sig1),src1);
