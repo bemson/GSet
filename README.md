@@ -1,8 +1,8 @@
 # GSet
 Share and use objects with ease.
 
-3/19/11
-version 1.0.0
+3/28/11
+version 1.0.1
 by Bemi Faison (bemson@gmail.com)
 
 ## DESCRIPTION
@@ -11,7 +11,7 @@ Formerly named Proxy, the GSet instance protects an object from unwanted access 
 
 ## FILES
 
-* gset-min.js - GSet library minified with the YUI Compressor version 2.4.2
+* gset-min.js - GSet library (minified with the [YUI Compressor](http://developer.yahoo.com/yui/compressor/) version 2.4.2)
 * src/ - Directory containing the GSet source code
 * src-test/ - Test suite for GSet
 * LICENSE - The legal terms and conditions under which GSet may be used
