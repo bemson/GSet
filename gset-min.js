@@ -1,5 +1,5 @@
 /*
- * GSet v1.0.0
+ * GSet v1.0.1
  * http://github.com/bemson/GSet/
  *
  * Copyright 2010, Bemi Faison
