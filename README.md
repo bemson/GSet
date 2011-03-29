@@ -20,7 +20,7 @@ Formerly named Proxy, the GSet instance protects an object from unwanted access 
 
 ## INSTALLATION
 
-Use GSet within a web browser. Load the `src/GSet.js` file like any other external JavaScript library file.
+Use GSet within a web browser. Load the `src/gset.js` file like any other external JavaScript library file.
 
 ## USAGE
 
