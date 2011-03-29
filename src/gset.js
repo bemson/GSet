@@ -1,11 +1,11 @@
 /*
- * GSet v1.0.0
+ * GSet v1.0.1
  * http://github.com/bemson/GSet/
  *
  * Copyright 2010, Bemi Faison
  * Released under the MIT License
  */
-(function () {
+(function (window) {
 	// init vars
 	var sys = {
 			// invokes given function with second-class arguments
@@ -75,7 +75,7 @@
 	*							Gate functions receive false return values, when invoking other instance methods of the same instance - excluding retrieval of the charter.
 	*							If this parameter is not given and the scheme is a GSet instance, it's gate is used.
 	**/
-	GSet = function (source, scheme) {
+	window.GSet = window.GSet || function (source, scheme) {
 		// init vars
 		var pxy = this, // alias self
 			args = arguments, // alias arguments
@@ -344,7 +344,7 @@
 	*
 	* @returns {Object} An object with three keys: gset, phase, and key. 
 	**/
-	GSet.getContext = function (args) {
+	window.GSet.getContext = function (args) {
 		var ctx = {
 				gset: !1,
 				alias: !1,
@@ -360,4 +360,4 @@
 		}
 		return ctx
 	};
-})();
+})(this);
